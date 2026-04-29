@@ -1,0 +1,78 @@
+{
+  "$schema": "https://modelcontextprotocol.io/schemas/mcp.json",
+  "_comment": "MCP server catalogue for India AI Ad Creator. See AGENTS.md > 'MCP usage' for rules. Tokens come from the shell env (or ~/.config/claude/.env) via ${VAR} substitution — never inline secrets here.",
+  "mcpServers": {
+    "nextjs": {
+      "_purpose": "Live dev-server state: routes, build errors, server logs. Requires the Next.js MCP server flag enabled in next.config.ts and `pnpm dev` running.",
+      "url": "http://localhost:3000/_next/mcp"
+    },
+    "supabase-local": {
+      "_purpose": "Read-write access to the LOCAL Supabase project for schema work, migrations, and type generation.",
+      "command": "npx",
+      "args": [
+        "-y",
+        "@supabase/mcp-server-supabase@latest",
+        "--project-ref",
+        "${SUPABASE_PROJECT_REF_LOCAL}"
+      ],
+      "env": {
+        "SUPABASE_ACCESS_TOKEN": "${SUPABASE_ACCESS_TOKEN}"
+      }
+    },
+    "supabase-prod": {
+      "_purpose": "READ-ONLY access to the production Supabase project. Never enable write tools against this entry.",
+      "command": "npx",
+      "args": [
+        "-y",
+        "@supabase/mcp-server-supabase@latest",
+        "--project-ref",
+        "${SUPABASE_PROJECT_REF_PROD}",
+        "--read-only"
+      ],
+      "env": {
+        "SUPABASE_ACCESS_TOKEN": "${SUPABASE_ACCESS_TOKEN}"
+      }
+    },
+    "cloudflare-r2": {
+      "_purpose": "Inspect R2 buckets (uploads, processed, public) and presign objects.",
+      "url": "https://r2.mcp.cloudflare.com/sse"
+    },
+    "cloudflare-observability": {
+      "_purpose": "Cloudflare cache analytics, Turnstile challenges, R2 metrics.",
+      "url": "https://observability.mcp.cloudflare.com/sse"
+    },
+    "vercel": {
+      "_purpose": "Deploy status, env-var inspection, function logs, preview URL fetch.",
+      "url": "https://mcp.vercel.com/"
+    },
+    "sentry": {
+      "_purpose": "Issue search, event details, release tagging.",
+      "url": "https://mcp.sentry.dev/sse",
+      "env": {
+        "SENTRY_AUTH_TOKEN": "${SENTRY_AUTH_TOKEN}"
+      }
+    },
+    "posthog": {
+      "_purpose": "Query events, funnel checks, feature-flag state.",
+      "command": "npx",
+      "args": ["-y", "@posthog/mcp@latest"],
+      "env": {
+        "POSTHOG_AUTH_HEADER": "${POSTHOG_AUTH_HEADER}"
+      }
+    },
+    "github": {
+      "_purpose": "Issue/PR/CI access. Uses GitHub-hosted remote MCP.",
+      "url": "https://api.githubcopilot.com/mcp/"
+    },
+    "shadcn": {
+      "_purpose": "Read the local shadcn registry so agents add components by name without re-deriving file shapes.",
+      "command": "pnpm",
+      "args": ["dlx", "shadcn@canary", "mcp"]
+    },
+    "playwright": {
+      "_purpose": "Drive a real browser for E2E debugging and Indic-text snapshot regressions.",
+      "command": "npx",
+      "args": ["-y", "@playwright/mcp@latest"]
+    }
+  }
+}

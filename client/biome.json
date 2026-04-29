@@ -1,0 +1,93 @@
+{
+  "$schema": "https://biomejs.dev/schemas/2.4.2/schema.json",
+  "vcs": {
+    "enabled": true,
+    "clientKind": "git",
+    "useIgnoreFile": true
+  },
+  "files": {
+    "ignoreUnknown": true,
+    "includes": ["**", "!node_modules", "!.next", "!dist", "!build"]
+  },
+  "formatter": {
+    "enabled": true,
+    "indentStyle": "space",
+    "indentWidth": 2
+  },
+  "css": {
+    "parser": {
+      "tailwindDirectives": true
+    }
+  },
+  "linter": {
+    "enabled": true,
+    "rules": {
+      "recommended": true,
+      "style": {
+        "noRestrictedImports": {
+          "level": "error",
+          "options": {
+            "paths": {
+              "@/lib/supabase/admin": "Service-role Supabase client. Allowed only in app/api/** and lib/** server modules. Use lib/supabase/server in dashboard / RSC code, or lib/supabase/client in Client Components.",
+              "@/lib/env.server": "Server-only env. Use lib/env (publicEnv) in any code that may run in the browser. Allowed only in app/api/**, server modules in lib/, middleware.ts, and server components."
+            }
+          }
+        }
+      }
+    },
+    "domains": {
+      "next": "recommended",
+      "react": "recommended"
+    }
+  },
+  "assist": {
+    "actions": {
+      "source": {
+        "organizeImports": "on"
+      }
+    }
+  },
+  "overrides": [
+    {
+      "includes": [
+        "app/api/**",
+        "lib/supabase/admin.ts",
+        "lib/supabase/server.ts",
+        "lib/env.server.ts",
+        "lib/r2/**",
+        "lib/groq/**",
+        "lib/hf/**",
+        "lib/razorpay/**",
+        "lib/scrape/**",
+        "lib/turnstile.ts",
+        "lib/quota.ts",
+        "middleware.ts",
+        "app/**/layout.tsx",
+        "app/**/page.tsx",
+        "app/(auth)/auth/callback/route.ts"
+      ],
+      "linter": {
+        "rules": {
+          "style": {
+            "noRestrictedImports": "off"
+          }
+        }
+      }
+    },
+    {
+      "includes": ["components/ui/**"],
+      "linter": {
+        "rules": {
+          "a11y": {
+            "noLabelWithoutControl": "off",
+            "useSemanticElements": "off",
+            "useKeyWithClickEvents": "off"
+          },
+          "correctness": {
+            "noUnusedImports": "off"
+          }
+        }
+      }
+    }
+  ]
+}

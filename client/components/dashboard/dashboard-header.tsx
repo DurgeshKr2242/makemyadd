@@ -1,0 +1,76 @@
+import { ChevronDown, Sparkles } from "lucide-react";
+import Link from "next/link";
+
+import { UsageBadge } from "@/components/dashboard/usage-badge";
+import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+
+const NAV = [
+  { href: "/dashboard", label: "Make ad" },
+  { href: "/history", label: "History" },
+  { href: "/billing", label: "Billing" },
+  { href: "/settings", label: "Settings" },
+];
+
+export function DashboardHeader({ userEmail }: { userEmail?: string }) {
+  return (
+    <header className="sticky top-0 z-40 glass">
+      <div className="mx-auto max-w-screen-2xl px-4 sm:px-6 lg:px-8 h-14 flex items-center justify-between gap-4">
+        <div className="flex items-center gap-8">
+          <Link
+            href="/dashboard"
+            className="flex items-center gap-2.5 font-medium tracking-tight"
+          >
+            <span className="inline-flex h-7 w-7 items-center justify-center rounded-lg bg-primary text-primary-foreground shadow-sm">
+              <Sparkles className="h-3.5 w-3.5" strokeWidth={2} />
+            </span>
+            <span className="hidden sm:inline text-[0.95rem]">AdCreator</span>
+          </Link>
+          <nav className="hidden md:flex items-center gap-0.5">
+            {NAV.map((item) => (
+              <Link
+                key={item.href}
+                href={item.href}
+                className="px-3 py-1.5 rounded-md text-body-sm text-muted-foreground hover:text-foreground hover:bg-accent transition-colors duration-fast"
+              >
+                {item.label}
+              </Link>
+            ))}
+          </nav>
+        </div>
+
+        <div className="flex items-center gap-3">
+          <UsageBadge />
+          <DropdownMenu>
+            <DropdownMenuTrigger
+              render={
+                <Button variant="outline" size="sm">
+                  Account <ChevronDown />
+                </Button>
+              }
+            />
+            <DropdownMenuContent align="end">
+              {userEmail ? (
+                <DropdownMenuLabel>{userEmail}</DropdownMenuLabel>
+              ) : null}
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                render={<Link href="/settings">Settings</Link>}
+              />
+              <DropdownMenuItem render={<Link href="/billing">Billing</Link>} />
+              <DropdownMenuSeparator />
+              <DropdownMenuItem render={<Link href="/logout">Sign out</Link>} />
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+      </div>
+    </header>
+  );
+}
