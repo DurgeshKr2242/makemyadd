@@ -3,9 +3,10 @@
 import { Globe, ImageIcon, Upload, X } from "lucide-react";
 import { useCallback, useEffect, useId, useRef, useState } from "react";
 
+import { UrlPane } from "@/components/generate/url-pane";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import type { ExtractResponse } from "@/lib/schemas/generation";
 import { cn } from "@/lib/utils";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
@@ -18,6 +19,7 @@ export type InputValue =
 export interface InputFormProps {
   value: InputValue;
   onChange: (v: InputValue) => void;
+  onProductExtracted?: (product: ExtractResponse) => void;
   className?: string;
 }
 
@@ -264,98 +266,14 @@ function UploadPane({
   );
 }
 
-// ─── URL Pane ─────────────────────────────────────────────────────────────────
-
-function UrlPane({
-  value,
-  onChange,
-}: {
-  value: InputValue;
-  onChange: (v: InputValue) => void;
-}) {
-  const [draft, setDraft] = useState(value.type === "url" ? value.url : "");
-  const [error, setError] = useState<string | null>(null);
-
-  // "Selected" URL card
-  if (value.type === "url") {
-    return (
-      <div className="rounded-xl border border-border bg-card p-4 flex items-center gap-4">
-        <div className="h-10 w-10 shrink-0 rounded-lg bg-muted border border-border flex items-center justify-center">
-          <Globe className="h-4 w-4 text-muted-foreground" strokeWidth={1.75} />
-        </div>
-
-        <div className="flex-1 min-w-0">
-          <p className="text-body-sm font-medium truncate">{value.url}</p>
-          <p className="text-caption mt-0.5">Product URL</p>
-        </div>
-
-        <Button
-          variant="ghost"
-          size="icon-sm"
-          aria-label="Clear URL"
-          onClick={() => {
-            setDraft("");
-            onChange({ type: "empty" });
-          }}
-        >
-          <X className="h-4 w-4" strokeWidth={1.75} />
-        </Button>
-      </div>
-    );
-  }
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    const validationError = isAcceptableProductUrl(draft.trim());
-    if (validationError) {
-      setError(validationError);
-      return;
-    }
-    setError(null);
-    onChange({ type: "url", url: draft.trim() });
-  };
-
-  return (
-    <form onSubmit={handleSubmit} className="space-y-3">
-      <div className="flex gap-2">
-        <Input
-          type="url"
-          placeholder="https://example.com/product"
-          value={draft}
-          onChange={(e) => {
-            setDraft(e.target.value);
-            if (error) setError(null);
-          }}
-          aria-label="Product URL"
-          aria-invalid={error ? "true" : undefined}
-          aria-describedby={error ? "url-error" : undefined}
-          className="flex-1"
-        />
-        <Button type="submit" size="default">
-          Use URL
-        </Button>
-      </div>
-
-      {error ? (
-        <p
-          id="url-error"
-          className="text-caption text-destructive"
-          role="alert"
-        >
-          {error}
-        </p>
-      ) : (
-        <p className="text-caption">
-          We'll extract product details automatically.
-        </p>
-      )}
-    </form>
-  );
-}
-
 // ─── InputForm ───────────────────────────────────────────────────────────────
 
-export function InputForm({ value, onChange, className }: InputFormProps) {
+export function InputForm({
+  value,
+  onChange,
+  onProductExtracted,
+  className,
+}: InputFormProps) {
   return (
     <Tabs defaultValue="upload" className={cn("w-full", className)}>
       <TabsList className="w-full">
@@ -374,7 +292,11 @@ export function InputForm({ value, onChange, className }: InputFormProps) {
       </TabsContent>
 
       <TabsContent value="url" className="mt-4">
-        <UrlPane value={value} onChange={onChange} />
+        <UrlPane
+          value={value}
+          onChange={onChange}
+          onProductExtracted={onProductExtracted}
+        />
       </TabsContent>
     </Tabs>
   );

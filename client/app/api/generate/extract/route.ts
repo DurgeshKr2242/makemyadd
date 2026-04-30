@@ -1,40 +1,72 @@
-// client/app/api/generate/extract/route.ts
-// Spec §6 — Extract product info from URL or uploaded photo.
-// Middleware at client/middleware.ts already gates /api/generate/** for auth.
-import "server-only";
-
+/**
+ * Extract product info from a URL or photo — TODO §6.
+ *
+ * URL branch: Cheerio scrape + SSRF guard, no external creds needed.
+ * Photo branch: Groq Vision call, deferred until GROQ_API_KEY is set.
+ */
 import { type NextRequest, NextResponse } from "next/server";
+import { ZodError } from "zod";
 
-import { ExtractRequestSchema } from "@/lib/schemas/generation";
+import {
+  type ExtractRequest,
+  ExtractRequestSchema,
+} from "@/lib/schemas/generation";
+import { ScrapeError, scrapeProductUrl } from "@/lib/scrape/cheerio";
 import { createClient } from "@/lib/supabase/server";
 
 export async function POST(request: NextRequest) {
+  // Parse + validate
   const body = await request.json().catch(() => null);
-  const parsed = ExtractRequestSchema.safeParse(body);
-  if (!parsed.success) {
-    return NextResponse.json(
-      { error: "invalid_body", issues: parsed.error.flatten() },
-      { status: 400 },
-    );
+  let parsed: ExtractRequest;
+  try {
+    parsed = ExtractRequestSchema.parse(body);
+  } catch (err) {
+    if (err instanceof ZodError) {
+      return NextResponse.json(
+        { error: "invalid_body", issues: err.flatten() },
+        { status: 400 },
+      );
+    }
+    return NextResponse.json({ error: "invalid_body" }, { status: 400 });
   }
 
-  // Re-verify session to obtain the user id (middleware already ensured auth).
+  // Auth — middleware already blocks unauthenticated requests when Supabase
+  // env is set. Re-fetch the user so we have it for logging / quota later.
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) {
+  if (!user && process.env.NEXT_PUBLIC_SUPABASE_URL) {
+    // Only enforce when Supabase env IS set. Dev mode falls through.
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
 
-  // TODO §6 — implement product extraction:
-  //   - If inputType === "url": fetch page, SSRF-guard against private IPs,
-  //     call Groq vision model to extract product info.
-  //   - If inputType === "photo": retrieve imageKey from R2, call Groq.
-  //   - Validate output via ExtractResponseSchema (Zod), retry up to 3×.
-  //   - On quota exhaustion, return 429.
+  if (parsed.inputType === "url") {
+    try {
+      const product = await scrapeProductUrl(parsed.inputUrl);
+      return NextResponse.json({
+        productName: product.productName,
+        productDesc: product.productDesc,
+        // The schema requires a productImageUrl field. If the page has no
+        // og:image, return the original URL so the client can fall back to
+        // the photo upload path. Real extraction wires R2 re-hosting in §6.1.
+        productImageUrl: product.productImageUrl ?? parsed.inputUrl,
+      });
+    } catch (err) {
+      if (err instanceof ScrapeError) {
+        // 422 — semantically valid request, but we can't do anything useful
+        return NextResponse.json(
+          { error: err.code, message: err.message },
+          { status: 422 },
+        );
+      }
+      throw err;
+    }
+  }
+
+  // photo branch — needs Groq Vision (TODO §6.2)
   return NextResponse.json(
-    { error: "not_implemented", spec: "§6" },
+    { error: "not_implemented", spec: "§6.2" },
     { status: 501 },
   );
 }
