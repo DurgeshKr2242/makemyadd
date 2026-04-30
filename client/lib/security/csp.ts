@@ -7,11 +7,19 @@
  *
  * Notes on the choices below:
  *
- *   - `'unsafe-inline'` on script-src is forbidden — XSS surface. We
- *     use Next.js's nonce mechanism via the middleware on a future PR;
- *     for now strict-dynamic mode (with nonce) is deferred and we use
- *     a permissive 'self' + the small list of trusted hosts.
- *   - `'unsafe-inline'` on style-src IS allowed because Tailwind v4 +
+ *   - `'unsafe-inline'` on script-src IS currently allowed. Next.js's
+ *     App Router emits inline scripts for the RSC payload + hydration
+ *     bootstrap — without 'unsafe-inline' those scripts are blocked,
+ *     React never hydrates client components, and (in our case)
+ *     FabricCanvas never mounts → the canvas stays a zero-size element.
+ *     The proper fix is nonce-based CSP via middleware (TODO §21
+ *     follow-up): generate a per-request nonce, inject into the
+ *     `script-src` directive + onto every Next inline script. That
+ *     refactor warrants its own focused PR + per-language E2E to
+ *     confirm hydration still works under the strict CSP. Until then,
+ *     'unsafe-inline' is the practical choice — most production Next.js
+ *     apps run with this same exception.
+ *   - `'unsafe-inline'` on style-src is allowed because Tailwind v4 +
  *     Fabric.js + Sentry replay all inject inline styles dynamically.
  *     Locking this down requires a Tailwind-emit-nonce plugin we don't
  *     have yet. Acceptable trade — inline styles are not an XSS vector.
@@ -62,13 +70,16 @@ export function buildCsp({ isDev }: CspOptions): string {
     "default-src": ["'self'"],
     "script-src": [
       "'self'",
+      // Required for Next.js App Router inline hydration scripts. See
+      // the file-header comment for the nonce-refactor TODO.
+      "'unsafe-inline'",
       ...RAZORPAY_HOSTS,
       ...TURNSTILE_HOSTS,
       ...POSTHOG_HOSTS,
       // Vercel preview / production bundles
       "https://va.vercel-scripts.com",
-      // Dev needs eval for Next.js HMR + React Refresh
-      ...(isDev ? ["'unsafe-eval'", "'unsafe-inline'"] : []),
+      // Dev additionally needs eval for Next.js HMR + React Refresh
+      ...(isDev ? ["'unsafe-eval'"] : []),
     ],
     "style-src": ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
     "img-src": [

@@ -21,11 +21,14 @@ import { expect, test } from "@playwright/test";
  *   6. The success toast appears.
  */
 
-// 1×1 transparent PNG, the smallest valid PNG. Playwright's setInputFiles
-// accepts a buffer + a name, so we don't need a real file on disk.
-const TINY_PNG = Buffer.from(
-  "89504e470d0a1a0a0000000d49484452000000010000000108060000001f15c4890000000d49444154789c63f8cf00000003000100faaa00500000000049454e44ae426082",
-  "hex",
+// 64×64 SOLID RED PNG. We deliberately pick a visible image (not a 1×1
+// transparent) so the canvas's toDataURL() actually changes after the
+// upload — proves the file flowed through, not just that the badge
+// label updated. Pre-rendered via `sharp` then base64-encoded so the
+// test file is fully self-contained.
+const RED_PNG = Buffer.from(
+  "iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAIAAAAlC+aJAAAACXBIWXMAAAPoAAAD6AG1e1JrAAAAoElEQVR4nO2SQQkAQRDDquUs1L+2rIh7hIFCBSSh4evpRSdgAtUrsgv17qITMIHqFdmFenfRCZhA9YrsQr276ARMoHpFdqHeXXQCJlC9IrtQ7y46AROoXpFdqHcXnYAJVK/ILtS7i07ABKpXZBfq3UUnYALVK7IL9e6iEzCB6hXZhXp30QmYQPWK7EK9u+gETKB6RXah3l10AiZQveKfCz38jkE8FT2irAAAAABJRU5ErkJggg==",
+  "base64",
 );
 
 test.describe("dashboard end-to-end loop", () => {
@@ -51,7 +54,7 @@ test.describe("dashboard end-to-end loop", () => {
     await fileInput.setInputFiles({
       name: "festival-saree-test.png",
       mimeType: "image/png",
-      buffer: TINY_PNG,
+      buffer: RED_PNG,
     });
 
     // ─── Extracted-product badge appears with the filename ────────────────

@@ -27,15 +27,19 @@ describe("buildCsp", () => {
     expect(csp).toMatch(/connect-src[^;]*wss:\/\/\*\.supabase\.co/);
   });
 
-  it("forbids 'unsafe-eval' + 'unsafe-inline' in script-src in production", () => {
-    const csp = buildCsp({ isDev: false });
-    expect(csp).not.toMatch(/script-src[^;]*'unsafe-eval'/);
-    expect(csp).not.toMatch(/script-src[^;]*'unsafe-inline'/);
+  it("forbids 'unsafe-eval' in script-src in production (allowed in dev for HMR)", () => {
+    const prodCsp = buildCsp({ isDev: false });
+    expect(prodCsp).not.toMatch(/script-src[^;]*'unsafe-eval'/);
+
+    const devCsp = buildCsp({ isDev: true });
+    expect(devCsp).toMatch(/script-src[^;]*'unsafe-eval'/);
   });
 
-  it("allows 'unsafe-eval' + 'unsafe-inline' in script-src in dev only (HMR)", () => {
-    const csp = buildCsp({ isDev: true });
-    expect(csp).toMatch(/script-src[^;]*'unsafe-eval'/);
+  it("allows 'unsafe-inline' in script-src for Next.js inline RSC bootstrap", () => {
+    // Next.js App Router emits inline hydration scripts. Without this,
+    // React never hydrates client components — see csp.ts file-header
+    // comment for the nonce-refactor TODO.
+    const csp = buildCsp({ isDev: false });
     expect(csp).toMatch(/script-src[^;]*'unsafe-inline'/);
   });
 
