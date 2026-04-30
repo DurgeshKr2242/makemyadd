@@ -1,14 +1,31 @@
 /**
  * Template registry — TODO §11.2.
  *
- * Per-template JSON configs live in `lib/templates/configs/`. The registry
- * is the import surface for the renderer and the seed script. Real configs
- * land in §11 — for now we re-export an empty list so imports compile.
+ * Single source of truth for which templates exist. Imported by:
+ *   - GET /api/templates (server)
+ *   - <TemplateSelector /> (client)
+ *   - the marketing /templates page
  */
+import type { Format, TemplateCategory } from "@/lib/types";
+
+import { ALL_TEMPLATES } from "./configs";
 import type { TemplateConfig } from "./types";
 
-export const TEMPLATES: TemplateConfig[] = [];
+export const TEMPLATES: TemplateConfig[] = ALL_TEMPLATES;
 
 export function getTemplate(id: string): TemplateConfig | undefined {
   return TEMPLATES.find((t) => t.id === id);
+}
+
+export interface TemplateFilter {
+  format?: Format;
+  category?: TemplateCategory;
+}
+
+export function filterTemplates(filter: TemplateFilter): TemplateConfig[] {
+  return TEMPLATES.filter((t) => {
+    if (filter.format && t.format !== filter.format) return false;
+    if (filter.category && t.category !== filter.category) return false;
+    return true;
+  });
 }
