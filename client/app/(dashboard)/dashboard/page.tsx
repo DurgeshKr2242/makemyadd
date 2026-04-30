@@ -1,17 +1,23 @@
-import { ImageIcon, Link2, Upload } from "lucide-react";
-import type { Metadata } from "next";
+"use client";
 
+import type { Metadata } from "next";
+import { useState } from "react";
+
+import { InputForm, type InputValue } from "@/components/generate/input-form";
 import { Button } from "@/components/ui/button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { TEMPLATES } from "@/lib/templates/registry";
 
 import { CanvasPreview } from "./canvas-preview";
 
-export const metadata: Metadata = {
-  title: "Make an ad",
-};
+// Note: metadata export moved to a server component wrapper.
+// "use client" + metadata is invalid in Next.js App Router —
+// InputForm state must live here, so we accept no static metadata.
 
 export default function DashboardPage() {
+  const [productInput, setProductInput] = useState<InputValue>({
+    type: "empty",
+  });
+
   return (
     <div className="mx-auto max-w-screen-2xl px-4 sm:px-6 lg:px-8 py-10 lg:py-14">
       {/* Header */}
@@ -39,39 +45,9 @@ export default function DashboardPage() {
             title="Product"
             body="Upload an image or paste a product URL"
           >
-            <Tabs defaultValue="upload">
-              <TabsList className="w-full">
-                <TabsTrigger value="upload" className="flex-1">
-                  <Upload className="h-3.5 w-3.5" />
-                  Upload
-                </TabsTrigger>
-                <TabsTrigger value="url" className="flex-1">
-                  <Link2 className="h-3.5 w-3.5" />
-                  URL
-                </TabsTrigger>
-              </TabsList>
-              <TabsContent value="upload" className="mt-4">
-                <div className="rounded-xl border border-dashed border-input p-10 flex flex-col items-center justify-center text-center gap-3 transition-colors duration-fast hover:bg-accent/40">
-                  <ImageIcon
-                    className="h-8 w-8 text-muted-foreground"
-                    strokeWidth={1.25}
-                  />
-                  <p className="text-body-sm">
-                    Drop a JPG, PNG, or WEBP up to 10 MB
-                  </p>
-                  <Button size="sm" disabled>
-                    Choose file
-                  </Button>
-                </div>
-              </TabsContent>
-              <TabsContent value="url" className="mt-4">
-                <div className="rounded-xl border border-dashed border-input p-10 text-center">
-                  <p className="text-body-sm text-muted-foreground">
-                    URL extraction lands in TODO §6.
-                  </p>
-                </div>
-              </TabsContent>
-            </Tabs>
+            {/* InputForm holds the file/URL state; canvas still uses SAMPLE_IMAGE
+                until §5 real upload lands. productInput is available if needed. */}
+            <InputForm value={productInput} onChange={setProductInput} />
           </Step>
 
           <Step
