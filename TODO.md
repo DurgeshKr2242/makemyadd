@@ -83,8 +83,8 @@ The whole bootstrap aims at one outcome: **every tool in the stack is reachable 
 - [x] `CLAUDE.md` at repo root contains `@AGENTS.md`.
 - [x] **Project-level skill** at `.claude/skills/ui/SKILL.md` — auto-activates on any UI work, enforces `client/DESIGN.md`, shadcn-only policy, `render` vs `asChild`, all 8 component states, Indic snapshots.
 - [x] **Design system source of truth**: `client/DESIGN.md` — tokens, motion, density, accessibility, anti-patterns. Visual lock at `/design`.
-- [ ] `.cursor/rules/` mirrored from `AGENTS.md` for Cursor users.
-- [ ] `.github/copilot-instructions.md` for Copilot.
+- [x] `.cursor/rules/project.mdc` — Cursor always-apply rule mirroring AGENTS.md. Landed `2e164c5`.
+- [x] `.github/copilot-instructions.md` — Copilot auto-loaded mirror of AGENTS.md. Landed `2e164c5`.
 
 ### 0.5.2 MCP server catalogue (`.mcp.json` at repo root, committed)
 
@@ -127,7 +127,7 @@ The whole bootstrap aims at one outcome: **every tool in the stack is reachable 
 
 ### 0.5.4 Documentation grounding
 
-- [ ] Generate `llms.txt` and `llms-full.txt` for the production site (Next.js docs site does this; we copy the pattern). Both files at `/public/`. Lets external AI agents (e.g. someone using our public docs) ground on our own content.
+- [x] Generated `client/public/llms.txt` + `client/public/llms-full.txt` (llmstxt.org spec — README + CONTRIBUTING dump for external AI agents). Landed `7bd3d43`.
 - [ ] Add a `pnpm docs:next` helper that opens `node_modules/next/dist/docs/index.mdx` — humans get the same source the agents do.
 - [ ] Bookmark Next.js MCP support page (`https://nextjs.org/docs/app/guides/mcp-server`) in CONTRIBUTING.md.
 
@@ -150,8 +150,8 @@ Mirror the spec exactly so file paths stay grep-able against the doc.
 - [x] `CLAUDE.md` (one-liner `@AGENTS.md`)
 - [x] `.mcp.json` (MCP server catalogue)
 - [x] `tools/mcp-doctor.mjs` + `pnpm mcp:doctor` script
-- [ ] `.cursor/rules/` (mirrored agent rules — optional)
-- [ ] `.github/copilot-instructions.md` (Copilot variant of AGENTS.md)
+- [x] `.cursor/rules/project.mdc` mirrored from AGENTS.md
+- [x] `.github/copilot-instructions.md` mirrored from AGENTS.md
 - [ ] `tools/mcp/razorpay/` (in-house MCP wrapper, lazy)
 - [x] `docs/adcreator_technical_spec.pdf` (already present)
 - [x] `docs/adcreator_technical_spec.txt` (extracted text)
