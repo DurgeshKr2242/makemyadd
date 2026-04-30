@@ -19,6 +19,7 @@ next-env.d.ts
 .env.development
 .env.production
 !.env.example
+!**/.env.example
 
 # Build / cache
 dist/

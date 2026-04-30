@@ -61,7 +61,17 @@ const ServerEnvSchema = z.object({
 
 export type ServerEnv = z.infer<typeof ServerEnvSchema>;
 
-const parsed = ServerEnvSchema.safeParse(process.env);
+/** Strip empty / whitespace-only env values to undefined so `.optional()`
+ *  applies. `.env.local` files routinely look like `FOO=""` after a
+ *  `cp .env.example` and would otherwise fail `.min(1)`. */
+const cleanedEnv = Object.fromEntries(
+  Object.entries(process.env).map(([k, v]) => [
+    k,
+    typeof v === "string" && v.trim() === "" ? undefined : v,
+  ]),
+);
+
+const parsed = ServerEnvSchema.safeParse(cleanedEnv);
 
 if (!parsed.success) {
   console.error(

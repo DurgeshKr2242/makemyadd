@@ -32,15 +32,28 @@ const PublicEnvSchema = z.object({
 
 export type PublicEnv = z.infer<typeof PublicEnvSchema>;
 
+/** `.env.local` files routinely look like `FOO=""` after `cp .env.example`.
+ *  Zod's `.optional()` accepts `undefined` but NOT empty strings — they
+ *  still get validated against the inner schema and fail `.min(1)`. Drop
+ *  any empty / whitespace-only value to `undefined` so optionality behaves
+ *  the way operators expect, without polluting the schema with `preprocess`
+ *  wrappers that wreck inferred types. */
+const trim = <T>(v: T): T | undefined =>
+  typeof v === "string" && v.trim() === "" ? undefined : v;
+
 const parsed = PublicEnvSchema.safeParse({
-  NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL,
-  NEXT_PUBLIC_SUPABASE_ANON_KEY: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
-  NEXT_PUBLIC_APP_URL: process.env.NEXT_PUBLIC_APP_URL,
-  NEXT_PUBLIC_TURNSTILE_SITE_KEY: process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY,
-  NEXT_PUBLIC_POSTHOG_KEY: process.env.NEXT_PUBLIC_POSTHOG_KEY,
-  NEXT_PUBLIC_POSTHOG_HOST: process.env.NEXT_PUBLIC_POSTHOG_HOST,
-  NEXT_PUBLIC_SENTRY_DSN: process.env.NEXT_PUBLIC_SENTRY_DSN,
-  NEXT_PUBLIC_RAZORPAY_KEY_ID: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
+  NEXT_PUBLIC_SUPABASE_URL: trim(process.env.NEXT_PUBLIC_SUPABASE_URL),
+  NEXT_PUBLIC_SUPABASE_ANON_KEY: trim(
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+  ),
+  NEXT_PUBLIC_APP_URL: trim(process.env.NEXT_PUBLIC_APP_URL),
+  NEXT_PUBLIC_TURNSTILE_SITE_KEY: trim(
+    process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY,
+  ),
+  NEXT_PUBLIC_POSTHOG_KEY: trim(process.env.NEXT_PUBLIC_POSTHOG_KEY),
+  NEXT_PUBLIC_POSTHOG_HOST: trim(process.env.NEXT_PUBLIC_POSTHOG_HOST),
+  NEXT_PUBLIC_SENTRY_DSN: trim(process.env.NEXT_PUBLIC_SENTRY_DSN),
+  NEXT_PUBLIC_RAZORPAY_KEY_ID: trim(process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID),
 });
 
 if (!parsed.success) {
