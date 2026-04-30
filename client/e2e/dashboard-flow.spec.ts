@@ -114,4 +114,20 @@ test.describe("public page flows", () => {
     expect(res.status()).toBe(200);
     expect(res.headers()["content-type"]).toContain("image/png");
   });
+
+  test("/sw.js serves with no-cache + javascript content-type", async ({
+    request,
+  }) => {
+    const res = await request.get("/sw.js");
+    expect(res.status()).toBe(200);
+    expect(res.headers()["content-type"]).toContain("javascript");
+    expect(res.headers()["cache-control"]).toContain("no-cache");
+  });
+
+  test("/offline page renders the offline fallback", async ({ page }) => {
+    await page.goto("/offline");
+    await expect(page.getByRole("heading", { name: /offline/i })).toBeVisible({
+      timeout: 5_000,
+    });
+  });
 });

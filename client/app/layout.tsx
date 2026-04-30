@@ -3,6 +3,7 @@ import { Geist, Geist_Mono, Instrument_Serif } from "next/font/google";
 import { CommandPalette } from "@/components/command/command-palette";
 import { PostHogProvider } from "@/components/providers/posthog-provider";
 import { QueryProvider } from "@/components/providers/query-provider";
+import { ServiceWorkerRegister } from "@/components/pwa/sw-register";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import "./globals.css";
@@ -122,6 +123,7 @@ export default function RootLayout({
             },
           }}
         />
+        <ServiceWorkerRegister />
       </body>
     </html>
   );
