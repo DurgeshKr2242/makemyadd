@@ -1,6 +1,47 @@
 import { withSentryConfig } from "@sentry/nextjs";
 import type { NextConfig } from "next";
 
+import { buildCsp } from "./lib/security/csp";
+
+const isDev = process.env.NODE_ENV !== "production";
+
+const SECURITY_HEADERS = [
+  // Strict-Transport-Security is best set at the CDN edge (Cloudflare /
+  // Vercel) for the apex domain only. Skipping here to avoid double-set.
+  {
+    key: "Content-Security-Policy",
+    value: buildCsp({ isDev }),
+  },
+  {
+    key: "Referrer-Policy",
+    value: "strict-origin-when-cross-origin",
+  },
+  {
+    key: "X-Content-Type-Options",
+    value: "nosniff",
+  },
+  {
+    key: "X-Frame-Options",
+    // Belt-and-suspenders with frame-ancestors 'none' above. Some old
+    // browsers ignore CSP frame-ancestors.
+    value: "DENY",
+  },
+  {
+    key: "Permissions-Policy",
+    value: [
+      "camera=()",
+      "microphone=()",
+      "geolocation=()",
+      "interest-cohort=()",
+      "browsing-topics=()",
+    ].join(", "),
+  },
+  {
+    key: "X-DNS-Prefetch-Control",
+    value: "on",
+  },
+];
+
 const nextConfig: NextConfig = {
   // Image domains we trust to render via next/image. Keep tight; add when
   // we wire R2 + Supabase Storage.
@@ -12,6 +53,17 @@ const nextConfig: NextConfig = {
   },
   // sharp / fabric / @huggingface live outside the bundler; let Next know.
   serverExternalPackages: ["sharp"],
+  async headers() {
+    return [
+      {
+        // Apply to every route except statically-cached assets which Next
+        // serves with their own Cache-Control. Headers still apply to .js
+        // bundles (good — CSP needs to reach them).
+        source: "/:path*",
+        headers: SECURITY_HEADERS,
+      },
+    ];
+  },
 };
 
 // Sentry wrap is a no-op when SENTRY_AUTH_TOKEN / org / project aren't set.
