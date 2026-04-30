@@ -11,6 +11,7 @@ import { ProgressStepper } from "@/components/generate/progress-stepper";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useMockGeneration } from "@/lib/generate/use-mock-generation";
+import type { ExtractResponse } from "@/lib/schemas/generation";
 import type { TemplateConfig } from "@/lib/templates/types";
 import type { Language, Tone } from "@/lib/types";
 
@@ -51,11 +52,13 @@ const FREE_TIER_LIMIT = 5;
 export interface CanvasPreviewProps {
   templates: readonly TemplateConfig[];
   defaultTemplateId: string;
+  extractedProduct?: ExtractResponse | null;
 }
 
 export function CanvasPreview({
   templates,
   defaultTemplateId,
+  extractedProduct = null,
 }: CanvasPreviewProps) {
   const [tplId, setTplId] = useState(defaultTemplateId);
   const [language, setLanguage] = useState<Language>("hi");
@@ -73,7 +76,17 @@ export function CanvasPreview({
   const activeCopy =
     variants.length === 3
       ? (variants[selectedVariantIndex] ?? DEFAULT_COPY[language])
-      : DEFAULT_COPY[language];
+      : extractedProduct
+        ? {
+            headline: extractedProduct.productName,
+            subheadline:
+              extractedProduct.productDesc.slice(0, 120) ||
+              "Tap Generate to write copy",
+            cta: "Coming soon",
+          }
+        : DEFAULT_COPY[language];
+
+  const activeImageUrl = extractedProduct?.productImageUrl ?? SAMPLE_IMAGE;
 
   const isRunning = status === "running";
   const isComplete = status === "complete";
@@ -113,6 +126,14 @@ export function CanvasPreview({
           </div>
         )}
 
+        {/* Extracted product badge */}
+        {extractedProduct ? (
+          <div className="mb-3 inline-flex items-center gap-2 px-3 py-1 rounded-full bg-success/10 text-success text-mono">
+            <span className="inline-flex h-1.5 w-1.5 rounded-full bg-success" />
+            {extractedProduct.productName}
+          </div>
+        ) : null}
+
         {/* Canvas card */}
         <div className="spotlight-card relative bg-card border border-border rounded-3xl p-6 sm:p-8 shadow-lg">
           <div className="flex items-center justify-between mb-6">
@@ -129,7 +150,7 @@ export function CanvasPreview({
             {tpl ? (
               <FabricCanvas
                 template={tpl}
-                productImageUrl={SAMPLE_IMAGE}
+                productImageUrl={activeImageUrl}
                 copy={activeCopy}
                 language={language}
                 displayWidth={420}
