@@ -1,9 +1,11 @@
-import { ImageIcon, Link2, Sparkles, Upload } from "lucide-react";
+import { ImageIcon, Link2, Upload } from "lucide-react";
 import type { Metadata } from "next";
 
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { TEMPLATES } from "@/lib/templates/registry";
+
+import { CanvasPreview } from "./canvas-preview";
 
 export const metadata: Metadata = {
   title: "Make an ad",
@@ -92,43 +94,11 @@ export default function DashboardPage() {
         {/* Right — preview */}
         <div>
           <div className="sticky top-20">
-            <div className="spotlight-card relative bg-card border border-border rounded-3xl p-6 sm:p-8 shadow-lg">
-              <div className="flex items-center justify-between mb-6">
-                <p className="text-label">Live preview</p>
-                <Badge
-                  variant="outline"
-                  className="font-mono uppercase text-[10px] tracking-wider"
-                >
-                  1 × 1 · 1080
-                </Badge>
-              </div>
-
-              <div className="relative aspect-square rounded-2xl overflow-hidden bg-background border border-dashed border-input">
-                <div
-                  className="absolute inset-0 gradient-aurora opacity-50"
-                  aria-hidden
-                />
-                <div className="absolute inset-0 flex flex-col items-center justify-center text-center gap-3 p-8">
-                  <Sparkles
-                    className="h-8 w-8 text-muted-foreground"
-                    strokeWidth={1.25}
-                  />
-                  <p className="text-body-sm text-muted-foreground max-w-xs">
-                    Your ad preview will render here once Fabric.js wires up
-                    (TODO §11).
-                  </p>
-                </div>
-              </div>
-
-              <div className="mt-6 flex justify-end gap-2">
-                <Button variant="outline" disabled>
-                  Download
-                </Button>
-                <Button disabled>
-                  <Sparkles /> Generate
-                </Button>
-              </div>
-            </div>
+            <CanvasPreview
+              templates={TEMPLATES}
+              defaultTemplateId={TEMPLATES[0]?.id ?? ""}
+              language="hi"
+            />
           </div>
         </div>
       </div>
