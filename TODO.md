@@ -38,13 +38,13 @@
 - [x] Decision: **no monorepo at MVP**. Single app at `client/`.
 - [x] Path alias `@/*` set by `create-next-app`.
 - [x] **Biome** instead of ESLint + Prettier (`--biome` flag on canary).
-- [ ] Husky + lint-staged.
-- [ ] `commitlint` (Conventional Commits).
+- [x] Husky 9 + lint-staged 16 (pre-commit Biome, pre-push tsc).
+- [x] `commitlint` 20 (Conventional Commits, commit-msg hook). Subject-case relaxed for proper-noun file names.
 - [x] `@types/node`, `@types/react`, `@types/react-dom` from scaffold.
 - [x] npm scripts: `dev`, `build`, `start`, `lint`, `lint:fix`, `format`, `typecheck`, `mcp:doctor`. Remaining: `test`, `test:e2e`, `db:*`, `r2:sync`, `templates:seed`.
-- [ ] `tsconfig.json`: tighten to `noUncheckedIndexedAccess`, `exactOptionalPropertyTypes` (currently using create-next-app default).
-- [ ] README at project root.
-- [ ] CONTRIBUTING.md.
+- [x] `tsconfig.json`: `noUncheckedIndexedAccess` + `noFallthroughCasesInSwitch` enabled. (`exactOptionalPropertyTypes` deferred — would touch many sites for marginal gain.)
+- [x] README.md at repo root (quickstart, env reference per 501 stub, troubleshooting, agent tooling pointer).
+- [x] CONTRIBUTING.md (branching, Conventional Commits, PR checklist, tooling rules, AI-agent tooling pointer).
 
 ### 0.2 Dependencies to install
 

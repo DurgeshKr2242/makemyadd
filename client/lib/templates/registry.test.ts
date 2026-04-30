@@ -36,7 +36,7 @@ describe("template registry", () => {
   it("filterTemplates with both filters", () => {
     const out = filterTemplates({ format: "1x1", category: "urgency" });
     expect(out.length).toBe(1);
-    expect(out[0].id).toBe("urgency_red_01_1x1");
+    expect(out[0]?.id).toBe("urgency_red_01_1x1");
   });
 
   it("filterTemplates returns 9x16 templates", () => {
