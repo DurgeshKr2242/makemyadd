@@ -2,6 +2,7 @@
 
 import { ArrowUpRight, Check, Sparkles, X } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { ButtonLink } from "@/components/ui/button-link";
 import {
   Dialog,
@@ -19,12 +20,19 @@ export interface PlanModalProps {
   onOpenChange: (open: boolean) => void;
   /** Highlight which plan is "recommended" — defaults to "starter". */
   recommended?: Exclude<PlanId, "free">;
+  /**
+   * When provided, clicking the recommended plan card renders a real
+   * <Button> instead of <ButtonLink href="/billing">. Fires with the
+   * chosen plan id so the caller can flip plan state without navigating.
+   */
+  onUpgrade?: (plan: Exclude<PlanId, "free">) => void;
 }
 
 export function PlanModal({
   open,
   onOpenChange,
   recommended = "starter",
+  onUpgrade,
 }: PlanModalProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -133,22 +141,42 @@ export function PlanModal({
                     ))}
                   </ul>
 
-                  {/* CTA */}
-                  <ButtonLink
-                    href={plan.cta.href}
-                    variant={plan.cta.variant}
-                    size="sm"
-                    className="w-full justify-center"
-                    onClick={() => onOpenChange(false)}
-                  >
-                    Choose {plan.name}
-                    {plan.cta.variant === "default" ? (
+                  {/* CTA — if onUpgrade is provided + this is the recommended
+                      plan, render a real Button so the upgrade fires
+                      in-page without navigating to /billing. All other plans
+                      still link out to /billing. */}
+                  {isRecommended && onUpgrade && plan.id !== "free" ? (
+                    <Button
+                      variant={plan.cta.variant}
+                      size="sm"
+                      className="w-full justify-center"
+                      onClick={() => {
+                        onUpgrade(plan.id as Exclude<PlanId, "free">);
+                      }}
+                    >
+                      Choose {plan.name}
                       <ArrowUpRight
                         className="h-3.5 w-3.5"
                         strokeWidth={1.75}
                       />
-                    ) : null}
-                  </ButtonLink>
+                    </Button>
+                  ) : (
+                    <ButtonLink
+                      href={plan.cta.href}
+                      variant={plan.cta.variant}
+                      size="sm"
+                      className="w-full justify-center"
+                      onClick={() => onOpenChange(false)}
+                    >
+                      Choose {plan.name}
+                      {plan.cta.variant === "default" ? (
+                        <ArrowUpRight
+                          className="h-3.5 w-3.5"
+                          strokeWidth={1.75}
+                        />
+                      ) : null}
+                    </ButtonLink>
+                  )}
                 </article>
               );
             })}

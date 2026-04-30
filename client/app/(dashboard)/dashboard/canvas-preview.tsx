@@ -1,9 +1,13 @@
 // client/app/(dashboard)/dashboard/canvas-preview.tsx
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
+import { toast } from "sonner";
 import { PlanModal } from "@/components/billing/plan-modal";
-import { FabricCanvas } from "@/components/canvas/FabricCanvas";
+import {
+  FabricCanvas,
+  type FabricCanvasHandle,
+} from "@/components/canvas/FabricCanvas";
 import { TemplateSelector } from "@/components/canvas/TemplateSelector";
 import { CopyVariants } from "@/components/generate/copy-variants";
 import { LanguagePicker } from "@/components/generate/language-picker";
@@ -12,6 +16,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useMockGeneration } from "@/lib/generate/use-mock-generation";
 import type { ExtractResponse } from "@/lib/schemas/generation";
+import { useGenerationStore } from "@/lib/state/generation";
 import type { TemplateConfig } from "@/lib/templates/types";
 import type { Language, Tone } from "@/lib/types";
 
@@ -69,6 +74,13 @@ export function CanvasPreview({
   const [mockQuotaUsed, setMockQuotaUsed] = useState(0);
   const [planModalOpen, setPlanModalOpen] = useState(false);
 
+  // Plan from Zustand store — controls watermark visibility.
+  const plan = useGenerationStore((s) => s.plan);
+  const setPlan = useGenerationStore((s) => s.setPlan);
+
+  // Ref to the canvas — used to trigger the real PNG download.
+  const canvasRef = useRef<FabricCanvasHandle>(null);
+
   const { status, steps, variants, start, reset } = useMockGeneration(language);
 
   const tpl = templates.find((t) => t.id === tplId) ?? templates[0];
@@ -102,6 +114,26 @@ export function CanvasPreview({
     // Increment after triggering so we don't block the first run.
     // The real counter will live server-side; this is a UI mock.
     setMockQuotaUsed((n) => n + 1);
+  };
+
+  const handleDownload = () => {
+    const ts = new Date().toISOString().slice(0, 19).replace(/[:T]/g, "-");
+    const slug = (extractedProduct?.productName ?? "ad")
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-|-$/g, "")
+      .slice(0, 32);
+    const filename = `adcreator-${slug || "ad"}-${ts}`;
+    const ok = canvasRef.current?.download(filename) ?? false;
+    if (ok) {
+      toast.success("Downloaded", {
+        description: `${filename}.png saved to your downloads folder.`,
+      });
+    } else {
+      toast.error("Download failed", {
+        description: "Canvas wasn't ready. Try again.",
+      });
+    }
   };
 
   return (
@@ -138,28 +170,40 @@ export function CanvasPreview({
         <div className="spotlight-card relative bg-card border border-border rounded-3xl p-6 sm:p-8 shadow-lg">
           <div className="flex items-center justify-between mb-6">
             <p className="text-label">Live preview</p>
-            <Badge
-              variant="outline"
-              className="font-mono uppercase text-[10px] tracking-wider"
-            >
-              {tpl?.format} · {tpl?.canvas.width}
-            </Badge>
+            <div className="flex items-center gap-2">
+              {plan === "free" && (
+                <Badge
+                  variant="outline"
+                  className="bg-warning/10 text-warning font-mono uppercase text-[10px] tracking-wider"
+                >
+                  Watermark
+                </Badge>
+              )}
+              <Badge
+                variant="outline"
+                className="font-mono uppercase text-[10px] tracking-wider"
+              >
+                {tpl?.format} · {tpl?.canvas.width}
+              </Badge>
+            </div>
           </div>
 
           <div className="flex justify-center">
             {tpl ? (
               <FabricCanvas
+                ref={canvasRef}
                 template={tpl}
                 productImageUrl={activeImageUrl}
                 copy={activeCopy}
                 language={language}
+                watermark={plan === "free"}
                 displayWidth={420}
               />
             ) : null}
           </div>
 
           <div className="mt-6 flex items-center justify-between gap-2">
-            <Button variant="outline" disabled>
+            <Button variant="outline" onClick={handleDownload}>
               Download
             </Button>
             {isComplete ? (
@@ -223,6 +267,14 @@ export function CanvasPreview({
         open={planModalOpen}
         onOpenChange={setPlanModalOpen}
         recommended="starter"
+        onUpgrade={(upgradedPlan) => {
+          setPlan(upgradedPlan);
+          setPlanModalOpen(false);
+          toast.success(`Upgraded to ${upgradedPlan}`, {
+            description:
+              "Watermark removed. Generations reset to monthly limit.",
+          });
+        }}
       />
     </>
   );

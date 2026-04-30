@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import { InputForm, type InputValue } from "@/components/generate/input-form";
 import type { ExtractResponse } from "@/lib/schemas/generation";
@@ -13,6 +13,21 @@ export function DashboardShell() {
   const [inputValue, setInputValue] = useState<InputValue>({ type: "empty" });
   const [extractedProduct, setExtractedProduct] =
     useState<ExtractResponse | null>(null);
+
+  // Mirror file uploads into extractedProduct — symmetric with the URL flow.
+  // When type === "url", the UrlPane's onProductExtracted callback handles it.
+  useEffect(() => {
+    if (inputValue.type === "file") {
+      setExtractedProduct({
+        productName: inputValue.file.name.replace(/\.[^.]+$/, ""),
+        productDesc: `${(inputValue.file.size / 1024).toFixed(0)} KB · ${inputValue.file.type}`,
+        productImageUrl: inputValue.previewUrl,
+      });
+    } else if (inputValue.type === "empty") {
+      setExtractedProduct(null);
+    }
+    // type === "url" — handled by UrlPane's onProductExtracted callback
+  }, [inputValue]);
 
   return (
     <div className="grid gap-6 lg:grid-cols-[480px_1fr]">
@@ -27,7 +42,6 @@ export function DashboardShell() {
             value={inputValue}
             onChange={(v) => {
               setInputValue(v);
-              if (v.type === "empty") setExtractedProduct(null);
             }}
             onProductExtracted={setExtractedProduct}
           />

@@ -1,7 +1,13 @@
 // client/components/canvas/FabricCanvas.tsx
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import {
+  forwardRef,
+  useEffect,
+  useImperativeHandle,
+  useRef,
+  useState,
+} from "react";
 
 import { FONT_FAMILIES } from "@/lib/fonts/families";
 import type {
@@ -28,130 +34,177 @@ export interface FabricCanvasProps {
   displayWidth?: number;
 }
 
-export function FabricCanvas({
-  template,
-  productImageUrl,
-  copy,
-  language,
-  watermark = false,
-  className,
-  displayWidth = 480,
-}: FabricCanvasProps) {
-  const wrapperRef = useRef<HTMLDivElement>(null);
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const fabricRef = useRef<unknown>(null);
-  const [error, setError] = useState<string | null>(null);
+export interface FabricCanvasHandle {
+  /** Returns the canvas as a data URL (1080×1080 native), or null if the
+   *  canvas isn't ready yet. */
+  toDataUrl: () => string | null;
+  /** Downloads the canvas as a PNG with the given filename (no extension).
+   *  Returns true on success, false if the canvas wasn't ready. */
+  download: (filename: string) => boolean;
+}
 
-  useEffect(() => {
-    let cancelled = false;
-    const family = FONT_FAMILIES[language];
+export const FabricCanvas = forwardRef<FabricCanvasHandle, FabricCanvasProps>(
+  function FabricCanvas(
+    {
+      template,
+      productImageUrl,
+      copy,
+      language,
+      watermark = false,
+      className,
+      displayWidth = 480,
+    }: FabricCanvasProps,
+    ref,
+  ) {
+    const wrapperRef = useRef<HTMLDivElement>(null);
+    const canvasRef = useRef<HTMLCanvasElement>(null);
+    const fabricRef = useRef<unknown>(null);
+    const [error, setError] = useState<string | null>(null);
 
-    (async () => {
-      try {
-        const { fabric } = await import("fabric");
-        if (cancelled || !canvasRef.current) return;
+    useImperativeHandle(ref, () => ({
+      toDataUrl: () => {
+        const canvas = canvasRef.current;
+        if (!canvas) return null;
+        try {
+          return canvas.toDataURL("image/png");
+        } catch (err) {
+          console.error("[FabricCanvas] toDataURL failed:", err);
+          return null;
+        }
+      },
+      download: (filename) => {
+        const canvas = canvasRef.current;
+        if (!canvas) return false;
+        try {
+          const url = canvas.toDataURL("image/png");
+          const a = document.createElement("a");
+          a.href = url;
+          a.download = `${filename}.png`;
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          return true;
+        } catch (err) {
+          console.error("[FabricCanvas] download failed:", err);
+          return false;
+        }
+      },
+    }));
 
-        await loadProxiedFont(family.slug, family.cssName);
-        if (cancelled) return;
+    useEffect(() => {
+      let cancelled = false;
+      const family = FONT_FAMILIES[language];
 
-        // Dispose any previous canvas
+      (async () => {
+        try {
+          const { fabric } = await import("fabric");
+          if (cancelled || !canvasRef.current) return;
+
+          await loadProxiedFont(family.slug, family.cssName);
+          if (cancelled) return;
+
+          // Dispose any previous canvas
+          const fc = fabricRef.current as { dispose?: () => void } | null;
+          fc?.dispose?.();
+
+          const c = new fabric.Canvas(canvasRef.current, {
+            width: template.canvas.width,
+            height: template.canvas.height,
+            selection: false,
+            backgroundColor: template.canvas.background,
+            enableRetinaScaling: true,
+          });
+          fabricRef.current = c;
+
+          // Fabric writes inline `width: 1080px; height: 1080px` styles on
+          // both the <canvas> and the wrapping div fabric injects, which
+          // overrides our `width: 100%`. Tell fabric to scale the CSS-only
+          // dimensions to our display size while keeping the internal
+          // resolution at template native (so exports stay 1080px crisp).
+          const scale = displayWidth / template.canvas.width;
+          c.setDimensions(
+            {
+              width: `${displayWidth}px`,
+              height: `${template.canvas.height * scale}px`,
+            },
+            { cssOnly: true },
+          );
+
+          for (const layer of template.layers) {
+            await renderLayer(
+              fabric,
+              c,
+              layer,
+              productImageUrl,
+              copy,
+              family.cssName,
+            );
+          }
+
+          if (watermark) {
+            // Watermark uses the language's Noto family (already loaded above)
+            // so Devanagari / Tamil / Telugu canvases don't tofu the brand
+            // mark when we localise it later.
+            c.add(
+              new fabric.Text("adcreator.in", {
+                left: template.canvas.width - 24,
+                top: template.canvas.height - 24,
+                fontSize: 18,
+                fill: "rgba(255,255,255,0.6)",
+                fontFamily: `${family.cssName}, sans-serif`,
+                originX: "right",
+                originY: "bottom",
+                selectable: false,
+              }),
+            );
+          }
+
+          c.renderAll();
+        } catch (err) {
+          if (!cancelled) {
+            setError(err instanceof Error ? err.message : String(err));
+          }
+        }
+      })();
+
+      return () => {
+        cancelled = true;
         const fc = fabricRef.current as { dispose?: () => void } | null;
         fc?.dispose?.();
+        fabricRef.current = null;
+      };
+    }, [template, productImageUrl, copy, language, watermark, displayWidth]);
 
-        const c = new fabric.Canvas(canvasRef.current, {
-          width: template.canvas.width,
-          height: template.canvas.height,
-          selection: false,
-          backgroundColor: template.canvas.background,
-          enableRetinaScaling: true,
-        });
-        fabricRef.current = c;
-
-        // Fabric writes inline `width: 1080px; height: 1080px` styles on
-        // both the <canvas> and the wrapping div fabric injects, which
-        // overrides our `width: 100%`. Tell fabric to scale the CSS-only
-        // dimensions to our display size while keeping the internal
-        // resolution at template native (so exports stay 1080px crisp).
-        const scale = displayWidth / template.canvas.width;
-        c.setDimensions(
-          {
-            width: `${displayWidth}px`,
-            height: `${template.canvas.height * scale}px`,
-          },
-          { cssOnly: true },
-        );
-
-        for (const layer of template.layers) {
-          await renderLayer(
-            fabric,
-            c,
-            layer,
-            productImageUrl,
-            copy,
-            family.cssName,
-          );
-        }
-
-        if (watermark) {
-          // Watermark uses the language's Noto family (already loaded above)
-          // so Devanagari / Tamil / Telugu canvases don't tofu the brand
-          // mark when we localise it later.
-          c.add(
-            new fabric.Text("adcreator.in", {
-              left: template.canvas.width - 24,
-              top: template.canvas.height - 24,
-              fontSize: 18,
-              fill: "rgba(255,255,255,0.6)",
-              fontFamily: `${family.cssName}, sans-serif`,
-              originX: "right",
-              originY: "bottom",
-              selectable: false,
-            }),
-          );
-        }
-
-        c.renderAll();
-      } catch (err) {
-        if (!cancelled) {
-          setError(err instanceof Error ? err.message : String(err));
-        }
-      }
-    })();
-
-    return () => {
-      cancelled = true;
-      const fc = fabricRef.current as { dispose?: () => void } | null;
-      fc?.dispose?.();
-      fabricRef.current = null;
-    };
-  }, [template, productImageUrl, copy, language, watermark, displayWidth]);
-
-  return (
-    <div
-      ref={wrapperRef}
-      className={className}
-      style={{
-        width: displayWidth,
-        aspectRatio: `${template.canvas.width} / ${template.canvas.height}`,
-        position: "relative",
-        // Fabric inserts a wrapper <div class="canvas-container"> around
-        // the <canvas> with inline pixel dimensions matching the native
-        // resolution. Constraining max-width on this outer wrapper plus
-        // the cssOnly setDimensions call inside useEffect keeps everything
-        // sized to displayWidth.
-        maxWidth: "100%",
-        overflow: "hidden",
-      }}
-    >
-      <canvas ref={canvasRef} style={{ display: "block", borderRadius: 12 }} />
-      {error ? (
-        <p className="absolute inset-0 flex items-center justify-center text-caption text-destructive p-4 text-center">
-          Canvas error: {error}
-        </p>
-      ) : null}
-    </div>
-  );
-}
+    return (
+      <div
+        ref={wrapperRef}
+        className={className}
+        style={{
+          width: displayWidth,
+          aspectRatio: `${template.canvas.width} / ${template.canvas.height}`,
+          position: "relative",
+          // Fabric inserts a wrapper <div class="canvas-container"> around
+          // the <canvas> with inline pixel dimensions matching the native
+          // resolution. Constraining max-width on this outer wrapper plus
+          // the cssOnly setDimensions call inside useEffect keeps everything
+          // sized to displayWidth.
+          maxWidth: "100%",
+          overflow: "hidden",
+        }}
+      >
+        <canvas
+          ref={canvasRef}
+          style={{ display: "block", borderRadius: 12 }}
+        />
+        {error ? (
+          <p className="absolute inset-0 flex items-center justify-center text-caption text-destructive p-4 text-center">
+            Canvas error: {error}
+          </p>
+        ) : null}
+      </div>
+    );
+  },
+);
 
 async function renderLayer(
   fabric: typeof import("fabric").fabric,

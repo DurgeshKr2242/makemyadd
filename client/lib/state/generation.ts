@@ -1,6 +1,6 @@
 import { create } from "zustand";
 
-import type { Language, Tone } from "@/lib/types";
+import type { Language, Plan, Tone } from "@/lib/types";
 
 export interface GenerationState {
   // Inputs
@@ -8,12 +8,14 @@ export interface GenerationState {
   tone: Tone;
   templateId: string | null;
   selectedVariantIndex: number;
+  plan: Plan;
 
   // Setters
   setLanguage: (l: Language) => void;
   setTone: (t: Tone) => void;
   setTemplateId: (id: string) => void;
   setSelectedVariantIndex: (i: number) => void;
+  setPlan: (p: Plan) => void;
   reset: () => void;
 }
 
@@ -22,6 +24,7 @@ const DEFAULTS = {
   tone: "festive" as Tone,
   templateId: null,
   selectedVariantIndex: 0,
+  plan: "free" as Plan,
 };
 
 export const useGenerationStore = create<GenerationState>()((set) => ({
@@ -31,6 +34,7 @@ export const useGenerationStore = create<GenerationState>()((set) => ({
   setTemplateId: (templateId) => set({ templateId }),
   setSelectedVariantIndex: (selectedVariantIndex) =>
     set({ selectedVariantIndex }),
+  setPlan: (plan) => set({ plan }),
   reset: () => set(DEFAULTS),
 }));
 
@@ -38,3 +42,4 @@ export const useGenerationStore = create<GenerationState>()((set) => ({
 // when unrelated state changes.
 export const useLanguage = () => useGenerationStore((s) => s.language);
 export const useTone = () => useGenerationStore((s) => s.tone);
+export const usePlan = () => useGenerationStore((s) => s.plan);
