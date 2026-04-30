@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import type { TemplateConfig } from "@/lib/templates/types";
 
 export interface TemplateSelectorProps {
-  templates: TemplateConfig[];
+  templates: readonly TemplateConfig[];
   value: string;
   onChange: (id: string) => void;
 }

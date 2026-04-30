@@ -11,7 +11,7 @@ import type { Format, TemplateCategory } from "@/lib/types";
 import { ALL_TEMPLATES } from "./configs";
 import type { TemplateConfig } from "./types";
 
-export const TEMPLATES: TemplateConfig[] = ALL_TEMPLATES;
+export const TEMPLATES: readonly TemplateConfig[] = ALL_TEMPLATES;
 
 export function getTemplate(id: string): TemplateConfig | undefined {
   return TEMPLATES.find((t) => t.id === id);
@@ -22,7 +22,9 @@ export interface TemplateFilter {
   category?: TemplateCategory;
 }
 
-export function filterTemplates(filter: TemplateFilter): TemplateConfig[] {
+export function filterTemplates(
+  filter: TemplateFilter,
+): readonly TemplateConfig[] {
   return TEMPLATES.filter((t) => {
     if (filter.format && t.format !== filter.format) return false;
     if (filter.category && t.category !== filter.category) return false;

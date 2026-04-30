@@ -43,7 +43,7 @@ const SAMPLE_IMAGE =
   );
 
 export interface CanvasPreviewProps {
-  templates: TemplateConfig[];
+  templates: readonly TemplateConfig[];
   defaultTemplateId: string;
   language: Language;
 }

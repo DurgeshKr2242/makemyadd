@@ -3,6 +3,7 @@ import type { TemplateConfig } from "@/lib/templates/types";
 
 export const cleanMinimal1x1: TemplateConfig = {
   id: "clean_minimal_01_1x1",
+  name: "Clean Minimal",
   format: "1x1",
   category: "showcase",
   canvas: { width: 1080, height: 1080, background: "#0F0F12" },

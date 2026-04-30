@@ -17,7 +17,11 @@ const SAMPLE_IMAGE =
     `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 400 400'><rect width='400' height='400' rx='32' fill='%23e5e7eb'/><text x='50%25' y='52%25' text-anchor='middle' font-family='sans-serif' font-size='24' fill='%23111'>Sample</text></svg>`,
   );
 
-export function TemplatesGrid({ templates }: { templates: TemplateConfig[] }) {
+export function TemplatesGrid({
+  templates,
+}: {
+  templates: readonly TemplateConfig[];
+}) {
   return (
     <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
       {templates.map((t) => (
@@ -35,9 +39,7 @@ export function TemplatesGrid({ templates }: { templates: TemplateConfig[] }) {
             />
           </div>
           <div className="flex items-center justify-between">
-            <span className="text-body-sm font-medium capitalize">
-              {t.id.replace(/_/g, " ").replace(/\d+/g, "").trim()}
-            </span>
+            <span className="text-body-sm font-medium">{t.name}</span>
             <Badge
               variant="outline"
               className="font-mono uppercase text-[10px] tracking-wider"

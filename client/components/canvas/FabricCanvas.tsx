@@ -93,13 +93,16 @@ export function FabricCanvas({
         }
 
         if (watermark) {
+          // Watermark uses the language's Noto family (already loaded above)
+          // so Devanagari / Tamil / Telugu canvases don't tofu the brand
+          // mark when we localise it later.
           c.add(
             new fabric.Text("adcreator.in", {
               left: template.canvas.width - 24,
               top: template.canvas.height - 24,
               fontSize: 18,
               fill: "rgba(255,255,255,0.6)",
-              fontFamily: "sans-serif",
+              fontFamily: `${family.cssName}, sans-serif`,
               originX: "right",
               originY: "bottom",
               selectable: false,
@@ -158,13 +161,28 @@ async function renderLayer(
   copy: { headline: string; subheadline: string; cta: string },
   fontFamily: string,
 ): Promise<void> {
-  if (layer.type === "rect") return renderRect(fabric, canvas, layer);
-  if (layer.type === "product")
-    return renderProduct(fabric, canvas, layer, productImageUrl);
-  if (layer.type === "text")
-    return renderText(fabric, canvas, layer, copy, fontFamily);
-  if (layer.type === "cta_btn") return renderCtaBtn(fabric, canvas, layer);
-  if (layer.type === "logo") return; // logo support lands with §14 brand kit
+  // Exhaustive switch — adding a new Layer type without a branch fails
+  // at compile time on the `_exhaustive: never` line below.
+  switch (layer.type) {
+    case "rect":
+      renderRect(fabric, canvas, layer);
+      return;
+    case "product":
+      return renderProduct(fabric, canvas, layer, productImageUrl);
+    case "text":
+      renderText(fabric, canvas, layer, copy, fontFamily);
+      return;
+    case "cta_btn":
+      renderCtaBtn(fabric, canvas, layer);
+      return;
+    case "logo":
+      // Brand kit lands with §14 Phase 2 — no-op for now.
+      return;
+    default: {
+      const _exhaustive: never = layer;
+      throw new Error(`Unhandled layer type: ${JSON.stringify(_exhaustive)}`);
+    }
+  }
 }
 
 function renderRect(

@@ -3,6 +3,7 @@ import type { TemplateConfig } from "@/lib/templates/types";
 
 export const festivalBright1x1: TemplateConfig = {
   id: "festival_bright_01_1x1",
+  name: "Festival Bright",
   format: "1x1",
   category: "sale",
   canvas: { width: 1080, height: 1080, background: "#FF6B35" },

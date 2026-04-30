@@ -9,6 +9,8 @@ import type { Format, TemplateCategory } from "@/lib/types";
 
 export interface TemplateConfig {
   id: string;
+  /** Human-readable display name shown in the gallery + selector. */
+  name: string;
   format: Format;
   category: TemplateCategory;
   canvas: { width: number; height: number; background: string };

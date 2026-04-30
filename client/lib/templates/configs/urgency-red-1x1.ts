@@ -3,6 +3,7 @@ import type { TemplateConfig } from "@/lib/templates/types";
 
 export const urgencyRed1x1: TemplateConfig = {
   id: "urgency_red_01_1x1",
+  name: "Urgency Red",
   format: "1x1",
   category: "urgency",
   canvas: { width: 1080, height: 1080, background: "#C81D25" },
