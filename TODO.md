@@ -179,24 +179,28 @@ Mirror the spec exactly so file paths stay grep-able against the doc.
 - [x] `client/app/(dashboard)/billing/page.tsx` (usage + plan grid + cancel card)
 - [x] `client/app/(dashboard)/billing/success/page.tsx`
 - [x] `client/app/(dashboard)/settings/page.tsx`
-- [ ] `client/app/api/upload/presign/route.ts`
-- [ ] `client/app/api/generate/extract/route.ts`
-- [ ] `client/app/api/generate/bgremove/route.ts`
-- [ ] `client/app/api/generate/copy/route.ts`
-- [ ] `client/app/api/generations/route.ts` (GET list)
-- [ ] `client/app/api/generations/[id]/route.ts` (GET single)
+- [~] `client/app/api/upload/presign/route.ts` (Zod + auth shell, 501 — body lands with §5)
+- [~] `client/app/api/generate/extract/route.ts` (Zod + auth shell, 501 — body lands with §6)
+- [~] `client/app/api/generate/bgremove/route.ts` (Zod + auth shell, 501 — body lands with §7)
+- [~] `client/app/api/generate/copy/route.ts` (Zod + Turnstile + auth shell, 501 — body lands with §8)
+- [~] `client/app/api/generations/route.ts` (cursor/limit Zod + auth shell, 501)
+- [~] `client/app/api/generations/[id]/route.ts` (UUID validation + auth shell, 501; 404 on bad uuid)
 - [x] `client/app/api/templates/route.ts` (Zod-validated `?format=&category=` filters; 5 vitest cases)
-- [ ] `client/app/api/payments/create-order/route.ts`
-- [ ] `client/app/api/payments/webhook/route.ts`
-- [ ] `client/app/api/payments/cancel/route.ts`
+- [~] `client/app/api/payments/create-order/route.ts` (Zod + auth shell, 501 — body lands with §12)
+- [~] `client/app/api/payments/webhook/route.ts` (HMAC-SHA256 + timing-safe-compare wired; fail-closed 503 if secret unset; 501 after pass)
+- [~] `client/app/api/payments/cancel/route.ts` (auth shell, 501)
 - [x] `client/app/api/fonts/[family]/route.ts` (Google Fonts CSS proxy with URL rewrite to `/api/fontfile/...`)
 - [x] `client/app/api/fontfile/[...path]/route.ts` (woff2 binary proxy, 1y immutable cache, SSRF guard)
-- [ ] `client/app/api/turnstile/verify/route.ts`
-- [x] `client/components/canvas/FabricCanvas.tsx` (dynamic-imports fabric, loads proxied font via `loadProxiedFont`, renders rect/product/text/cta_btn layers, optional watermark)
+- [x] `client/app/api/turnstile/verify/route.ts` (fully wired — calls `verifyTurnstileToken`, returns `{success}`)
+- [x] `client/components/canvas/FabricCanvas.tsx` (dynamic-imports fabric, loads proxied font via `loadProxiedFont`, renders rect/product/text/cta_btn layers, optional watermark, Indic-safe watermark font, exhaustive layer dispatch)
 - [x] `client/components/canvas/TemplateSelector.tsx` (grid w/ shadow-glow on selected, format badge, aria-pressed)
-- [x] `client/components/canvas/load-font.ts` (FontFace API helper)
-- [ ] `client/components/canvas/FormatSwitcher.tsx`
-- [ ] `client/components/canvas/CopyVariants.tsx`
+- [x] `client/components/canvas/load-font.ts` (FontFace API helper, parallel weight load, Safari absolute-URL resolution)
+- [x] `client/components/generate/progress-stepper.tsx` (6-step horizontal/vertical stepper with running/done/failed states)
+- [x] `client/components/generate/copy-variants.tsx` (3-tab variant selector, lang-aware)
+- [x] `client/components/generate/language-picker.tsx` (4 chip-style language buttons + tone Select)
+- [x] `client/lib/generate/use-mock-generation.ts` (mock state machine for the 6-step flow + fake variants per language; 2 vitest cases via fake timers)
+- [x] `client/components/ui/button-link.tsx` (Next Link styled with `buttonVariants` — replaces all `<Button render={<Link/>}>` patterns; documented in DESIGN.md)
+- [ ] `client/components/canvas/FormatSwitcher.tsx` (defer — current TemplateSelector covers it adequately)
 - [ ] `client/components/generate/InputForm.tsx`
 - [ ] `client/components/generate/ProgressStepper.tsx`
 - [ ] `client/components/billing/PlanModal.tsx`
@@ -223,8 +227,8 @@ Mirror the spec exactly so file paths stay grep-able against the doc.
 - [x] `client/lib/schemas/payments.ts`
 - [x] `client/lib/templates/registry.ts` (empty registry, ready for §11)
 - [x] `client/lib/templates/types.ts` (Layer + TemplateConfig)
-- [x] `client/lib/templates/configs/*.ts` — `festival-bright-1x1`, `clean-minimal-1x1`, `urgency-red-1x1`, `index.ts` (3 of 12 — 9×16 + 4×5 deferred)
-- [x] `client/lib/fonts/{proxy,families}.ts` + `proxy.test.ts` (font CSS rewriter — 7 vitest cases)
+- [x] `client/lib/templates/configs/*.ts` — **10 templates** across all 3 formats: festival_bright × {1x1, 9x16, 4x5}, clean_minimal × {1x1, 9x16, 4x5}, urgency_red × {1x1, 9x16, 4x5}, trust_badge_01_1x1
+- [x] `client/lib/fonts/{proxy,families}.ts` + `proxy.test.ts` (font CSS rewriter — 7 vitest cases, handles bare/quoted urls)
 - [x] `client/lib/types.ts` (Plan / Language / Format / Tone / Category + PLAN_LIMITS)
 - [x] `client/lib/env.ts` (Zod-validated public env)
 - [x] `client/lib/env.server.ts` (Zod-validated server env, `server-only`)
