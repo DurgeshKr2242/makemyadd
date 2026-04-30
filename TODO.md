@@ -54,7 +54,7 @@ Use the **canary / latest** channel on every package that ships agent affordance
 - [x] **Supabase:** `@supabase/supabase-js@2.105.1`, `@supabase/ssr@0.10.2`, `server-only@0.0.1`. **Pending:** `supabase` CLI devDep for `db:types` (deferred — install when wiring real auth).
 - [x] **R2 / S3:** `@aws-sdk/client-s3`, `@aws-sdk/s3-request-presigner`. **Pending:** `wrangler` devDep.
 - [x] **AI providers:** `groq-sdk@1.1.2`, `@huggingface/inference@4.13.15`.
-- [ ] **Canvas:** `fabric` (v5). Defer until §11 — large client bundle.
+- [x] **Canvas:** `fabric@5.5.2` + `@types/fabric` — dynamic-imported in `FabricCanvas`.
 - [x] **Payments:** `razorpay@2.9.6` (server SDK). Razorpay Checkout will load via `<Script>` at use site.
 - [x] **Validation:** `zod@4.3.6`.
 - [ ] **State:** `@tanstack/react-query`, `zustand`. Defer until first data-fetching component lands.
@@ -67,7 +67,7 @@ Use the **canary / latest** channel on every package that ships agent affordance
 - [x] **Scraping:** `cheerio@1.2.0`.
 - [ ] **Hashing:** `sharp-phash`. Defer until §7.3 BG-cache wiring.
 - [x] **Image utils:** `sharp@0.34.5`. Already noted to set `serverExternalPackages: ['sharp']` in `next.config.ts` when first used.
-- [ ] **Testing:** `vitest`, `@testing-library/*`, `playwright`, `msw`, `@playwright/mcp`. Defer.
+- [x] **Testing:** `vitest@4.1.5`, `jsdom`, `@testing-library/react`, `@testing-library/jest-dom`, `@vitest/coverage-v8`. **Pending:** `playwright`, `msw`, `@playwright/mcp` — defer until E2E lands.
 - [x] **Misc:** `nanoid@5.1.9`. **Pending:** `date-fns`, `isomorphic-dompurify`, `tiny-invariant`.
 
 ---
@@ -185,15 +185,16 @@ Mirror the spec exactly so file paths stay grep-able against the doc.
 - [ ] `client/app/api/generate/copy/route.ts`
 - [ ] `client/app/api/generations/route.ts` (GET list)
 - [ ] `client/app/api/generations/[id]/route.ts` (GET single)
-- [ ] `client/app/api/templates/route.ts`
+- [x] `client/app/api/templates/route.ts` (Zod-validated `?format=&category=` filters; 5 vitest cases)
 - [ ] `client/app/api/payments/create-order/route.ts`
 - [ ] `client/app/api/payments/webhook/route.ts`
 - [ ] `client/app/api/payments/cancel/route.ts`
-- [ ] `client/app/api/fonts/[family]/route.ts`
-- [ ] `client/app/api/fontfile/[...path]/route.ts`
+- [x] `client/app/api/fonts/[family]/route.ts` (Google Fonts CSS proxy with URL rewrite to `/api/fontfile/...`)
+- [x] `client/app/api/fontfile/[...path]/route.ts` (woff2 binary proxy, 1y immutable cache, SSRF guard)
 - [ ] `client/app/api/turnstile/verify/route.ts`
-- [ ] `client/components/canvas/FabricCanvas.tsx`
-- [ ] `client/components/canvas/TemplateSelector.tsx`
+- [x] `client/components/canvas/FabricCanvas.tsx` (dynamic-imports fabric, loads proxied font via `loadProxiedFont`, renders rect/product/text/cta_btn layers, optional watermark)
+- [x] `client/components/canvas/TemplateSelector.tsx` (grid w/ shadow-glow on selected, format badge, aria-pressed)
+- [x] `client/components/canvas/load-font.ts` (FontFace API helper)
 - [ ] `client/components/canvas/FormatSwitcher.tsx`
 - [ ] `client/components/canvas/CopyVariants.tsx`
 - [ ] `client/components/generate/InputForm.tsx`
@@ -222,7 +223,8 @@ Mirror the spec exactly so file paths stay grep-able against the doc.
 - [x] `client/lib/schemas/payments.ts`
 - [x] `client/lib/templates/registry.ts` (empty registry, ready for §11)
 - [x] `client/lib/templates/types.ts` (Layer + TemplateConfig)
-- [ ] `client/lib/templates/configs/*.ts` (per-template JSON — §11)
+- [x] `client/lib/templates/configs/*.ts` — `festival-bright-1x1`, `clean-minimal-1x1`, `urgency-red-1x1`, `index.ts` (3 of 12 — 9×16 + 4×5 deferred)
+- [x] `client/lib/fonts/{proxy,families}.ts` + `proxy.test.ts` (font CSS rewriter — 7 vitest cases)
 - [x] `client/lib/types.ts` (Plan / Language / Format / Tone / Category + PLAN_LIMITS)
 - [x] `client/lib/env.ts` (Zod-validated public env)
 - [x] `client/lib/env.server.ts` (Zod-validated server env, `server-only`)
