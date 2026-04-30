@@ -3,16 +3,16 @@
 import {
   BookOpen,
   Bug,
+  Clock,
   CreditCard,
+  FileText,
   LayoutDashboard,
   LayoutTemplate,
   Mail,
   Moon,
   PenSquare,
   Settings,
-  Clock,
   Tag,
-  FileText,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -147,7 +147,10 @@ const PALETTE_GROUPS: PaletteGroup[] = [
       {
         label: "Report a bug",
         icon: <Bug className="h-4 w-4" strokeWidth={1.75} />,
-        action: { kind: "nav", href: "mailto:hello@adcreator.in?subject=Bug+report" },
+        action: {
+          kind: "nav",
+          href: "mailto:hello@adcreator.in?subject=Bug+report",
+        },
       },
     ],
   },

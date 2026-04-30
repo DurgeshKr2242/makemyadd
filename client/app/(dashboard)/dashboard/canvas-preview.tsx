@@ -2,10 +2,9 @@
 "use client";
 
 import { useState } from "react";
-
+import { PlanModal } from "@/components/billing/plan-modal";
 import { FabricCanvas } from "@/components/canvas/FabricCanvas";
 import { TemplateSelector } from "@/components/canvas/TemplateSelector";
-import { PlanModal } from "@/components/billing/plan-modal";
 import { CopyVariants } from "@/components/generate/copy-variants";
 import { LanguagePicker } from "@/components/generate/language-picker";
 import { ProgressStepper } from "@/components/generate/progress-stepper";

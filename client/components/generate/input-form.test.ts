@@ -5,14 +5,14 @@ describe("isAcceptableProductUrl", () => {
   // ─── Valid URLs ───────────────────────────────────────────────────────────
 
   it("accepts a plain HTTPS product URL", () => {
-    expect(isAcceptableProductUrl("https://example.com/product/123")).toBeNull();
+    expect(
+      isAcceptableProductUrl("https://example.com/product/123"),
+    ).toBeNull();
   });
 
   it("accepts an HTTPS URL with query params", () => {
     expect(
-      isAcceptableProductUrl(
-        "https://www.amazon.in/dp/B09XXX?ref=sr_1",
-      ),
+      isAcceptableProductUrl("https://www.amazon.in/dp/B09XXX?ref=sr_1"),
     ).toBeNull();
   });
 
@@ -47,7 +47,9 @@ describe("isAcceptableProductUrl", () => {
   });
 
   it("rejects 169.254.169.254 (cloud metadata endpoint)", () => {
-    const err = isAcceptableProductUrl("https://169.254.169.254/latest/meta-data");
+    const err = isAcceptableProductUrl(
+      "https://169.254.169.254/latest/meta-data",
+    );
     expect(err).not.toBeNull();
   });
 

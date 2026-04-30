@@ -238,22 +238,22 @@ Mirror the spec exactly so file paths stay grep-able against the doc.
 - [x] `client/lib/env.server.ts` (Zod-validated server env, `server-only`)
 - [x] `client/middleware.ts` (session refresh + redirect to /login on protected paths + 401 on protected APIs)
 - [x] `client/next.config.ts` (default; will tighten with `serverExternalPackages: ['sharp']` + `mcpServer` flag when needed)
-- [x] `supabase/migrations/20260429000001_profiles.sql`
-- [x] `supabase/migrations/20260429000002_subscriptions.sql`
-- [x] `supabase/migrations/20260429000003_templates.sql`
-- [x] `supabase/migrations/20260429000004_generations.sql`
-- [x] `supabase/migrations/20260429000005_copy_cache.sql`
-- [x] `supabase/migrations/20260429000006_image_cache.sql`
-- [x] `supabase/migrations/20260429000007_phase2_scaffold.sql`
-- [x] `supabase/seed.sql`
-- [x] `supabase/config.toml`
+- [x] `client/supabase/migrations/20260429000001_profiles.sql`
+- [x] `client/supabase/migrations/20260429000002_subscriptions.sql`
+- [x] `client/supabase/migrations/20260429000003_templates.sql`
+- [x] `client/supabase/migrations/20260429000004_generations.sql`
+- [x] `client/supabase/migrations/20260429000005_copy_cache.sql`
+- [x] `client/supabase/migrations/20260429000006_image_cache.sql`
+- [x] `client/supabase/migrations/20260429000007_phase2_scaffold.sql`
+- [x] `client/supabase/seed.sql`
+- [x] `client/supabase/config.toml`
 - [ ] `client/public/fonts/` (self-hosted Noto fallbacks)
 
 ---
 
 ## 2. Database Schema (Supabase / PostgreSQL 15)
 
-All DDL via `supabase/migrations/*.sql`. **Never** edit through the dashboard.
+All DDL via `client/supabase/migrations/*.sql`. **Never** edit through the dashboard.
 
 ### 2.1 `profiles`
 - [ ] FK to `auth.users(id)` with `on delete cascade`.
@@ -272,7 +272,7 @@ All DDL via `supabase/migrations/*.sql`. **Never** edit through the dashboard.
 - [ ] Columns: `id` (text, e.g. `festival_bright_01`), `name`, `category` (`sale|showcase|trust|urgency`), `formats` (text[]), `preview_url`, `config` (jsonb — Fabric template), `is_active`, `created_at`.
 - [ ] RLS: `Public read templates` (select where `true`).
 - [ ] Phase 2 scaffold columns: `is_video boolean default false`, `creatomate_template_id text`. Add now in migration 007.
-- [ ] Seed via `supabase/seed.sql` AND `lib/templates/configs/*.ts`. Seed at least one template per category × per supported format.
+- [ ] Seed via `client/supabase/seed.sql` AND `lib/templates/configs/*.ts`. Seed at least one template per category × per supported format.
 
 ### 2.4 `generations`
 - [ ] Columns: `id`, `user_id`, `input_type` (`url|photo`), `input_url`, `product_image_url`, `bg_removed_url`, `product_name`, `product_desc`, `language` (`en|hi|ta|te`), `template_id`, `format` (`1x1|9x16|4x5`), `copy_variants` (jsonb), `selected_variant int default 0`, `status` (`pending|processing|complete|failed`), `error_message`, `created_at`.

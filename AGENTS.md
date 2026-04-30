@@ -25,7 +25,7 @@ This version has breaking changes — APIs, conventions, and file structure may 
 
 ## Database
 
-- All schema changes go through **`supabase/migrations/*.sql`**. Never edit schema in the Supabase dashboard.
+- All schema changes go through **`client/supabase/migrations/*.sql`**. Never edit schema in the Supabase dashboard. Run the Supabase CLI from inside `client/` (where `package.json` and `.env.local` live).
 - Regenerate types after every migration: `pnpm db:types`. Never hand-edit `client/lib/supabase/database.types.ts`.
 - Use the **Supabase MCP** (`supabase-local` for read-write, `supabase-prod` for read-only) for schema lookups instead of guessing column names.
 - Row-Level Security is enabled on every user-facing table. Service-role client (`lib/supabase/admin.ts`) is the only path that bypasses RLS — **never** import it from a Client Component or any file under `app/(dashboard)`. There is a Biome lint rule preventing this; if you see it fire, fix the import, do not silence the rule.
