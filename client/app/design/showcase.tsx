@@ -8,11 +8,13 @@ import {
   Circle,
   Download,
   Eye,
+  Globe,
   Loader2,
   Palette,
   Plus,
   Sparkles,
   Trash2,
+  Upload,
   X,
 } from "lucide-react";
 import { useState } from "react";
@@ -22,6 +24,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { ButtonLink } from "@/components/ui/button-link";
 import {
   Card,
   CardContent,
@@ -90,6 +93,12 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 
+// Components we're showcasing
+import { CopyVariants } from "@/components/generate/copy-variants";
+import { ProgressStepper, type ProgressStep } from "@/components/generate/progress-stepper";
+
+// ─── Static data ──────────────────────────────────────────────────────────────
+
 const COLOR_TOKENS = [
   { name: "background", className: "bg-background", border: true },
   { name: "foreground", className: "bg-foreground", textOn: "text-background" },
@@ -124,43 +133,48 @@ const BRAND_TOKENS = [
 const TYPOGRAPHY_SAMPLES = [
   {
     className: "text-display",
-    label: "Display · 56/64 · 600",
+    label: "Display · Geist · clamp(44–72px) · 500",
     text: "Make ads people stop scrolling for.",
   },
   {
     className: "text-h1",
-    label: "Heading 1 · 36/44 · 600",
+    label: "Heading 1 · Geist · 36/44 · 500 · −0.025em",
     text: "Your festival sale, ready in 30 seconds",
   },
   {
     className: "text-h2",
-    label: "Heading 2 · 28/36 · 600",
+    label: "Heading 2 · Geist · 28/36 · 500 · −0.02em",
     text: "Generate. Preview. Download.",
   },
   {
     className: "text-h3",
-    label: "Heading 3 · 22/30 · 600",
+    label: "Heading 3 · Geist · 18/26 · 500 · −0.015em",
     text: "Three variants, one tap",
   },
   {
     className: "text-body",
-    label: "Body · 15/24 · 400",
+    label: "Body · Geist · 15/28 · 400",
     text: "Drop a product photo or paste a URL — we extract the details, remove the background, and generate copy in your language.",
   },
   {
     className: "text-body-sm",
-    label: "Body small · 13/20 · 400",
+    label: "Body small · Geist · 13/20 · 400",
     text: "Used in tables, secondary descriptions, and dense lists.",
   },
   {
     className: "text-caption",
-    label: "Caption · 12/16 · 400 muted",
+    label: "Caption · Geist · 12/16 · 400 muted",
     text: "Helper text and subtle metadata.",
   },
   {
     className: "text-label",
-    label: "Label · 12/16 · 500 uppercase",
+    label: "Label · Geist · 11/14 · 500 caps · +0.16em",
     text: "Section eyebrow",
+  },
+  {
+    className: "text-mono",
+    label: "Mono · Geist Mono · 12/18",
+    text: "gen-0xf3a2 · 1×1 · hi",
   },
 ];
 
@@ -171,10 +185,85 @@ const INDIC_SAMPLES = [
   { lang: "te", text: "కొత్త ఆఫర్ — ఈరోజే కొనండి, 20% ఆదా చేయండి." },
 ];
 
+const ATMOSPHERE_TILES = [
+  {
+    name: ".gradient-spotlight",
+    className: "gradient-spotlight",
+    desc: "Default hero. Single saffron radial at 78% −10%.",
+  },
+  {
+    name: ".gradient-aurora",
+    className: "gradient-aurora",
+    desc: "Marketing hero only. Saffron + indigo + marigold.",
+  },
+  {
+    name: ".grid-fade",
+    className: "grid-fade",
+    desc: "Subtle 56px grid fading to transparent at edges.",
+  },
+  {
+    name: ".grain",
+    className: "grain bg-card",
+    desc: "4% opacity noise overlay. Hero only.",
+  },
+  {
+    name: ".spotlight-card",
+    className: "spotlight-card bg-card border border-border",
+    desc: "Top-edge radial highlight (Apple Vision Pro style).",
+  },
+  {
+    name: ".hairline",
+    className: "",
+    isHairline: true,
+    desc: "Gradient hairline — fades to transparent at edges.",
+  },
+];
+
+const SAMPLE_STEPS: ProgressStep[] = [
+  { key: "upload", label: "Upload", status: "done" },
+  { key: "extract", label: "Extract", status: "done" },
+  { key: "bgremove", label: "BG remove", status: "running" },
+  { key: "copy", label: "Copy", status: "pending" },
+  { key: "render", label: "Render", status: "pending" },
+  { key: "done", label: "Done", status: "pending" },
+];
+
+const SAMPLE_VARIANTS = [
+  {
+    headline: "त्योहारी सेल — आज ही खरीदें",
+    subheadline: "हाथ से बुनी हुई कॉटन साड़ी पर 20% की छूट।",
+    cta: "अभी खरीदें",
+  },
+  {
+    headline: "तोहफा खुद को दीजिए",
+    subheadline: "फेस्टिवल कलेक्शन — सीमित समय के लिए।",
+    cta: "देखिए",
+  },
+  {
+    headline: "घर बैठे शॉपिंग",
+    subheadline: "फ्री शिपिंग, कैश ऑन डिलीवरी।",
+    cta: "ऑर्डर करें",
+  },
+];
+
+const ALL_BUTTON_VARIANTS = [
+  "default",
+  "secondary",
+  "outline",
+  "ghost",
+  "link",
+  "destructive",
+] as const;
+
+const ALL_BUTTON_SIZES = ["xs", "sm", "default", "lg"] as const;
+
+// ─── Showcase ────────────────────────────────────────────────────────────────
+
 export function DesignShowcase() {
   const [progress, setProgress] = useState(45);
   const [loading, setLoading] = useState(false);
   const [switched, setSwitched] = useState(true);
+  const [variantIdx, setVariantIdx] = useState(0);
 
   return (
     <main
@@ -182,22 +271,34 @@ export function DesignShowcase() {
       className="mx-auto max-w-screen-2xl px-4 sm:px-6 lg:px-8 py-12 lg:py-16"
     >
       {/* Header */}
-      <header className="mb-12 lg:mb-16">
-        <div className="flex items-center gap-2 text-label mb-4">
+      <header className="relative mb-16 pb-12 border-b border-border">
+        <div className="absolute inset-0 -z-10 gradient-spotlight pointer-events-none" aria-hidden />
+        <div className="flex items-center gap-2 text-label mb-6">
           <Palette className="h-3.5 w-3.5" />
-          Design system · v0.1
+          Design system · v0.2
         </div>
         <h1 className="text-display max-w-3xl">
-          The visual lock for <span className="text-primary">AdCreator</span>.
+          The visual lock for{" "}
+          <span className="text-serif text-primary">AdCreator</span>.
         </h1>
         <p className="text-body text-muted-foreground mt-4 max-w-2xl">
-          Every component, token, and motion sample lives here. If something on
-          this page looks wrong, the design system is broken — fix it before
-          shipping new UI elsewhere.
+          Every token, typography scale, atmosphere utility, and component state
+          lives here. If this page looks wrong, the design system is broken —
+          fix it before shipping new UI.
+        </p>
+        <p className="text-caption mt-6">
+          Source:{" "}
+          <code className="text-mono bg-muted px-1.5 py-0.5 rounded">
+            client/DESIGN.md
+          </code>{" "}
+          · Tokens:{" "}
+          <code className="text-mono bg-muted px-1.5 py-0.5 rounded">
+            app/globals.css
+          </code>
         </p>
       </header>
 
-      <div className="space-y-16">
+      <div className="space-y-20">
         {/* ─── Colors ─── */}
         <section>
           <SectionHeader
@@ -248,7 +349,7 @@ export function DesignShowcase() {
             {TYPOGRAPHY_SAMPLES.map((s) => (
               <div
                 key={s.className}
-                className="grid grid-cols-1 md:grid-cols-[200px_1fr] gap-4 md:gap-8 items-baseline"
+                className="grid grid-cols-1 md:grid-cols-[220px_1fr] gap-4 md:gap-8 items-baseline"
               >
                 <div className="text-mono text-caption">{s.label}</div>
                 <div className={s.className}>{s.text}</div>
@@ -284,58 +385,238 @@ export function DesignShowcase() {
 
         <Separator />
 
-        {/* ─── Buttons ─── */}
+        {/* ─── Editorial moments ─── */}
         <section>
           <SectionHeader
-            title="Buttons"
-            subtitle="One primary per region. Sizes: sm · default · lg · icon."
+            title="Editorial moments"
+            subtitle="Instrument Serif — one moment per surface, not sprinkled"
           />
-          <Card>
-            <CardContent className="pt-6 space-y-6">
-              <Group label="Variants">
-                <Button>Generate ad</Button>
-                <Button variant="secondary">Save draft</Button>
-                <Button variant="outline">Cancel</Button>
-                <Button variant="ghost">Skip</Button>
-                <Button variant="link">Learn more</Button>
-                <Button variant="destructive">
-                  <Trash2 /> Delete
-                </Button>
-              </Group>
 
-              <Group label="Sizes">
-                <Button size="sm">Small</Button>
-                <Button>Default</Button>
-                <Button size="lg">Large</Button>
-                <Button size="icon" aria-label="Add">
-                  <Plus />
-                </Button>
-              </Group>
+          <div className="space-y-6">
+            {/* Display vs Display-Serif comparison */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-label">
+                  .text-display vs .text-display-serif
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="grid md:grid-cols-2 gap-8">
+                <div>
+                  <p className="text-caption mb-3">Geist Sans (default hero)</p>
+                  <p className="text-display leading-none">
+                    Make an ad today.
+                  </p>
+                </div>
+                <div>
+                  <p className="text-caption mb-3">
+                    Instrument Serif (editorial hero)
+                  </p>
+                  <p className="text-display-serif leading-none">
+                    Make an ad today.
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
 
-              <Group label="States">
-                <Button>
-                  <Sparkles /> Generate
-                </Button>
-                <Button disabled>Disabled</Button>
-                <Button
-                  onClick={() => {
-                    setLoading(true);
-                    setTimeout(() => setLoading(false), 1500);
-                  }}
+            {/* Indic script display comparison */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-label">
+                  Indic — display scale, no clipping
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <p className="text-caption mb-2">
+                  Hindi runs ~25% wider; Tamil ~35%. Never hard-code container
+                  widths.
+                </p>
+                <div className="grid md:grid-cols-2 gap-4">
+                  <div lang="hi" className="text-h2">
+                    त्योहारी सेल — अभी खरीदें
+                  </div>
+                  <div lang="ta" className="text-h2">
+                    திருவிழா சலுகை — இன்றே வாங்கு
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Inline serif accent example */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-label">
+                  Inline .text-serif accent (one per surface)
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <p className="text-h2">
+                  Studio-quality ads in{" "}
+                  <em className="text-serif text-primary not-italic">
+                    your language
+                  </em>
+                  .
+                </p>
+                <p className="text-h2">
+                  Generate{" "}
+                  <span className="text-serif text-primary">3 variants</span> in
+                  30 seconds.
+                </p>
+                <p className="text-h2">
+                  Trusted by{" "}
+                  <span className="text-serif text-foreground">2,500</span>{" "}
+                  sellers.
+                </p>
+                <p className="text-caption">
+                  The serif word is the beat. One per page — used on the heading
+                  where it has the most emotional weight.
+                </p>
+              </CardContent>
+            </Card>
+          </div>
+        </section>
+
+        <Separator />
+
+        {/* ─── Atmosphere ─── */}
+        <section>
+          <SectionHeader
+            title="Atmosphere utilities"
+            subtitle="Never ship a solid-color hero — use these instead"
+          />
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {ATMOSPHERE_TILES.map((tile) =>
+              tile.isHairline ? (
+                <div
+                  key={tile.name}
+                  className="rounded-xl border border-border bg-card flex flex-col overflow-hidden"
+                  style={{ height: 120 }}
                 >
-                  {loading ? (
-                    <Loader2 className="animate-spin" />
-                  ) : (
-                    <Sparkles />
-                  )}
-                  {loading ? "Generating…" : "Try loading"}
-                </Button>
-                <Button variant="outline">
-                  <Download /> Download HD
-                </Button>
-              </Group>
-            </CardContent>
-          </Card>
+                  <div className="flex-1 flex items-center px-6">
+                    <div className="hairline w-full" />
+                  </div>
+                  <div className="px-4 pb-4">
+                    <p className="text-mono text-[11px] text-primary mb-0.5">
+                      {tile.name}
+                    </p>
+                    <p className="text-caption">{tile.desc}</p>
+                  </div>
+                </div>
+              ) : (
+                <div
+                  key={tile.name}
+                  className={`rounded-xl ${tile.className} flex flex-col justify-end p-4 border border-border`}
+                  style={{ height: 120 }}
+                >
+                  <p className="text-mono text-[11px] text-primary mb-0.5">
+                    {tile.name}
+                  </p>
+                  <p className="text-caption">{tile.desc}</p>
+                </div>
+              ),
+            )}
+          </div>
+        </section>
+
+        <Separator />
+
+        {/* ─── Buttons + ButtonLink ─── */}
+        <section>
+          <SectionHeader
+            title="Buttons + ButtonLink"
+            subtitle="One primary per region. <Button> for actions, <ButtonLink> for navigation."
+          />
+
+          <div className="space-y-6">
+            {/* Rule callout */}
+            <div className="flex gap-4 rounded-xl border border-border bg-card p-5">
+              <div className="flex-1">
+                <p className="text-body-sm font-medium mb-1">
+                  <code className="text-mono bg-muted px-1 py-0.5 rounded">
+                    &lt;Button&gt;
+                  </code>{" "}
+                  — click actions (onClick, form submits, dialog triggers)
+                </p>
+                <p className="text-caption">
+                  Uses Base UI under the hood. Never wrap a Link inside it — use{" "}
+                  <code className="text-mono">ButtonLink</code> instead to avoid
+                  hydration mismatches.
+                </p>
+              </div>
+              <div className="flex-1">
+                <p className="text-body-sm font-medium mb-1">
+                  <code className="text-mono bg-muted px-1 py-0.5 rounded">
+                    &lt;ButtonLink&gt;
+                  </code>{" "}
+                  — navigation (href, router.push)
+                </p>
+                <p className="text-caption">
+                  A Next.js Link styled with buttonVariants. No Base UI wrapper
+                  — no nativeButton warnings.
+                </p>
+              </div>
+            </div>
+
+            {/* All 6 variants × 4 sizes */}
+            <Card>
+              <CardContent className="pt-6 space-y-8">
+                {ALL_BUTTON_VARIANTS.map((variant) => (
+                  <Group key={variant} label={`variant="${variant}"`}>
+                    {ALL_BUTTON_SIZES.map((size) => (
+                      <Button key={size} variant={variant} size={size}>
+                        {size === "xs" ? variant.slice(0, 3) : variant}
+                      </Button>
+                    ))}
+                    <Button variant={variant} size="icon" aria-label={variant}>
+                      <Plus className="h-4 w-4" strokeWidth={1.75} />
+                    </Button>
+                    <Button variant={variant} size="icon-sm" aria-label={`${variant} sm`}>
+                      <Plus className="h-3.5 w-3.5" strokeWidth={1.75} />
+                    </Button>
+                    <Button variant={variant} size="icon-xs" aria-label={`${variant} xs`}>
+                      <Plus className="h-3 w-3" strokeWidth={1.75} />
+                    </Button>
+                  </Group>
+                ))}
+
+                <Group label="<ButtonLink> — navigation">
+                  <ButtonLink href="/dashboard" size="sm">
+                    Dashboard
+                  </ButtonLink>
+                  <ButtonLink href="/pricing" variant="outline">
+                    Pricing
+                  </ButtonLink>
+                  <ButtonLink href="/billing" variant="secondary" size="lg">
+                    Upgrade <ArrowRight className="h-4 w-4" strokeWidth={1.75} />
+                  </ButtonLink>
+                </Group>
+
+                <Group label="States">
+                  <Button>
+                    <Sparkles className="h-4 w-4" strokeWidth={1.75} /> Generate
+                  </Button>
+                  <Button disabled>Disabled</Button>
+                  <Button
+                    onClick={() => {
+                      setLoading(true);
+                      setTimeout(() => setLoading(false), 1500);
+                    }}
+                    aria-busy={loading}
+                  >
+                    {loading ? (
+                      <Loader2 className="animate-spin h-4 w-4" />
+                    ) : (
+                      <Sparkles className="h-4 w-4" strokeWidth={1.75} />
+                    )}
+                    {loading ? "Generating…" : "Try loading"}
+                  </Button>
+                  <Button variant="outline">
+                    <Download className="h-4 w-4" strokeWidth={1.75} /> Download
+                    HD
+                  </Button>
+                </Group>
+              </CardContent>
+            </Card>
+          </div>
         </section>
 
         <Separator />
@@ -465,9 +746,9 @@ export function DesignShowcase() {
                 </ul>
               </CardContent>
               <CardFooter>
-                <Button className="w-full">
-                  Upgrade <ArrowRight />
-                </Button>
+                <ButtonLink href="/billing?plan=starter" className="w-full justify-center">
+                  Upgrade <ArrowRight className="h-4 w-4" strokeWidth={1.75} />
+                </ButtonLink>
               </CardFooter>
             </Card>
 
@@ -493,9 +774,9 @@ export function DesignShowcase() {
                 </ul>
               </CardContent>
               <CardFooter>
-                <Button variant="secondary" className="w-full">
+                <ButtonLink href="/billing?plan=pro" variant="secondary" className="w-full justify-center">
                   Upgrade
-                </Button>
+                </ButtonLink>
               </CardFooter>
             </Card>
           </div>
@@ -526,6 +807,43 @@ export function DesignShowcase() {
             <Badge className="bg-success text-background">Active</Badge>
             <Badge className="bg-warning text-background">Halted</Badge>
             <Badge className="bg-info text-background">Info</Badge>
+          </div>
+        </section>
+
+        <Separator />
+
+        {/* ─── Generate flow ─── */}
+        <section>
+          <SectionHeader
+            title="Generate flow"
+            subtitle="ProgressStepper + CopyVariants — used in canvas-preview"
+          />
+
+          <div className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-label">
+                  ProgressStepper — step 3 running
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ProgressStepper steps={SAMPLE_STEPS} />
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-label">CopyVariants (Hindi)</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <CopyVariants
+                  variants={SAMPLE_VARIANTS}
+                  selectedIndex={variantIdx}
+                  onSelect={setVariantIdx}
+                  language="hi"
+                />
+              </CardContent>
+            </Card>
           </div>
         </section>
 
@@ -766,41 +1084,53 @@ export function DesignShowcase() {
 
         <Separator />
 
-        {/* ─── Marketing utility samples ─── */}
+        {/* ─── Atmosphere reference ─── */}
         <section>
           <SectionHeader
-            title="Marketing utilities"
-            subtitle=".gradient-mesh, .gradient-saffron-radial, .glass"
+            title="Atmosphere reference"
+            subtitle=".gradient-spotlight · .gradient-aurora · .glass · naming as of v0.2"
           />
           <div className="grid gap-4 md:grid-cols-2">
-            <div className="rounded-2xl gradient-mesh p-8 border border-border">
-              <p className="text-label">.gradient-mesh</p>
+            <div className="rounded-2xl gradient-aurora p-8 border border-border">
+              <p className="text-label">.gradient-aurora</p>
               <p className="text-h2 mt-2">Festival sale energy</p>
               <p className="text-body text-muted-foreground mt-2">
-                Three radial gradients — saffron, indigo, marigold. Use only for
-                hero sections.
+                Three radial gradients — saffron, indigo, marigold. Use only
+                for hero sections (once per site).
               </p>
             </div>
-            <div className="rounded-2xl gradient-saffron-radial p-8 border border-border">
-              <p className="text-label">.gradient-saffron-radial</p>
+            <div className="rounded-2xl gradient-spotlight p-8 border border-border">
+              <p className="text-label">.gradient-spotlight</p>
               <p className="text-h2 mt-2">Subtle warmth</p>
               <p className="text-body text-muted-foreground mt-2">
-                Single saffron radial in the top right. Default hero gradient.
+                Single saffron radial at 78% −10%. Default hero gradient.
               </p>
             </div>
           </div>
+
+          <p className="text-caption mt-4">
+            Note: earlier names <code className="text-mono">.gradient-mesh</code>{" "}
+            and <code className="text-mono">.gradient-saffron-radial</code> no
+            longer exist — update any usages to{" "}
+            <code className="text-mono">.gradient-aurora</code> /{" "}
+            <code className="text-mono">.gradient-spotlight</code>.
+          </p>
         </section>
       </div>
 
       <footer className="mt-20 pt-8 border-t border-border">
         <p className="text-caption">
-          Source of truth: <code className="text-mono">client/DESIGN.md</code> ·
-          Skill: <code className="text-mono">.claude/skills/ui/SKILL.md</code>
+          Source of truth:{" "}
+          <code className="text-mono">client/DESIGN.md</code> · Skill:{" "}
+          <code className="text-mono">.claude/skills/ui/SKILL.md</code> ·
+          Page: <code className="text-mono">client/app/design/showcase.tsx</code>
         </p>
       </footer>
     </main>
   );
 }
+
+// ─── Helpers ─────────────────────────────────────────────────────────────────
 
 function SectionHeader({
   title,
@@ -810,7 +1140,7 @@ function SectionHeader({
   subtitle?: string;
 }) {
   return (
-    <div className="mb-6">
+    <div className="mb-8">
       <h2 className="text-h2">{title}</h2>
       {subtitle ? (
         <p className="text-body text-muted-foreground mt-1">{subtitle}</p>
@@ -828,7 +1158,7 @@ function Group({
 }) {
   return (
     <div>
-      <p className="text-label mb-2">{label}</p>
+      <p className="text-label mb-3">{label}</p>
       <div className="flex flex-wrap items-center gap-3">{children}</div>
     </div>
   );
