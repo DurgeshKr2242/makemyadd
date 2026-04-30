@@ -1,7 +1,4 @@
-// client/app/(marketing)/templates/page.tsx — replace existing default export
 import type { Metadata } from "next";
-
-import { TEMPLATES } from "@/lib/templates/registry";
 
 import { TemplatesGrid } from "./templates-grid";
 
@@ -20,11 +17,11 @@ export default function TemplatesPage() {
           fit.
         </h1>
         <p className="text-body text-muted-foreground mt-5 text-lg">
-          Three templates at launch. Square format. Pre-tested at every Indic
-          script for overflow. More formats and categories land in §11.
+          Ten templates at launch. Three formats (1×1, 9×16, 4×5). Pre-tested at
+          every Indic script for overflow. More variants land each release.
         </p>
       </div>
-      <TemplatesGrid templates={TEMPLATES} />
+      <TemplatesGrid />
     </section>
   );
 }
