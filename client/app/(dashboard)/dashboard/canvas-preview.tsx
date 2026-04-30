@@ -1,6 +1,7 @@
 // client/app/(dashboard)/dashboard/canvas-preview.tsx
 "use client";
 
+import { motion, useReducedMotion } from "motion/react";
 import { useRef, useState } from "react";
 import { toast } from "sonner";
 import { PlanModal } from "@/components/billing/plan-modal";
@@ -15,6 +16,8 @@ import { ProgressStepper } from "@/components/generate/progress-stepper";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useMockGeneration } from "@/lib/generate/use-mock-generation";
+import { useShortcuts } from "@/lib/hooks/use-shortcuts";
+import { fadeUp, fadeUpHero, staggerChildren } from "@/lib/motion/entrance";
 import type { ExtractResponse } from "@/lib/schemas/generation";
 import { useGenerationStore } from "@/lib/state/generation";
 import type { TemplateConfig } from "@/lib/templates/types";
@@ -136,19 +139,53 @@ export function CanvasPreview({
     }
   };
 
+  // Power-user keyboard shortcuts
+  useShortcuts([
+    {
+      keys: "d",
+      description: "Download current canvas",
+      handler: handleDownload,
+    },
+    {
+      keys: "g",
+      description: "Generate copy",
+      handler: () => {
+        if (!isRunning && !isComplete) handleStart();
+      },
+    },
+    {
+      keys: ["1", "2", "3"],
+      description: "Switch to copy variant 1 / 2 / 3",
+      handler: (e) => {
+        if (variants.length !== 3) return;
+        const idx = Number.parseInt(e.key, 10) - 1;
+        if (idx >= 0 && idx <= 2) setSelectedVariantIndex(idx);
+      },
+    },
+  ]);
+
+  const reducedMotion = useReducedMotion();
+
   return (
     <>
-      <div className="space-y-5">
+      <motion.div
+        className="space-y-5"
+        initial={reducedMotion ? false : "hidden"}
+        animate="show"
+        variants={staggerChildren()}
+      >
         {/* Language & tone picker */}
-        <LanguagePicker
-          language={language}
-          onLanguageChange={(lang) => {
-            setLanguage(lang);
-            reset();
-          }}
-          tone={tone}
-          onToneChange={setTone}
-        />
+        <motion.div variants={fadeUp}>
+          <LanguagePicker
+            language={language}
+            onLanguageChange={(lang) => {
+              setLanguage(lang);
+              reset();
+            }}
+            tone={tone}
+            onToneChange={setTone}
+          />
+        </motion.div>
 
         {/* Progress stepper — visible while running */}
         {isRunning && (
@@ -167,7 +204,10 @@ export function CanvasPreview({
         ) : null}
 
         {/* Canvas card */}
-        <div className="spotlight-card relative bg-card border border-border rounded-3xl p-6 sm:p-8 shadow-lg">
+        <motion.div
+          className="spotlight-card relative bg-card border border-border rounded-3xl p-6 sm:p-8 shadow-lg"
+          variants={fadeUpHero}
+        >
           <div className="flex items-center justify-between mb-6">
             <p className="text-label">Live preview</p>
             <div className="flex items-center gap-2">
@@ -239,28 +279,63 @@ export function CanvasPreview({
               {mockQuotaUsed} of {FREE_TIER_LIMIT} free generations used
             </p>
           )}
-        </div>
+
+          {/* Keyboard shortcut hint — desktop only */}
+          <div className="hidden lg:flex items-center gap-3 mt-4 pt-4 border-t border-border/50 text-muted-foreground">
+            <span className="text-[10px] tracking-wider uppercase font-mono">
+              Shortcuts
+            </span>
+            <span className="flex items-center gap-1 text-[11px]">
+              <kbd className="bg-muted text-mono px-1.5 py-0.5 rounded text-[10px] tracking-wider">
+                D
+              </kbd>
+              Download
+            </span>
+            <span className="text-border">·</span>
+            <span className="flex items-center gap-1 text-[11px]">
+              <kbd className="bg-muted text-mono px-1.5 py-0.5 rounded text-[10px] tracking-wider">
+                G
+              </kbd>
+              Generate
+            </span>
+            <span className="text-border">·</span>
+            <span className="flex items-center gap-1 text-[11px]">
+              <kbd className="bg-muted text-mono px-1.5 py-0.5 rounded text-[10px] tracking-wider">
+                1
+              </kbd>
+              <kbd className="bg-muted text-mono px-1.5 py-0.5 rounded text-[10px] tracking-wider">
+                2
+              </kbd>
+              <kbd className="bg-muted text-mono px-1.5 py-0.5 rounded text-[10px] tracking-wider">
+                3
+              </kbd>
+              Variants
+            </span>
+          </div>
+        </motion.div>
 
         {/* Copy variants — visible once generation is complete */}
         {isComplete && variants.length === 3 && (
-          <CopyVariants
-            variants={variants}
-            selectedIndex={selectedVariantIndex}
-            onSelect={setSelectedVariantIndex}
-            language={language}
-          />
+          <motion.div variants={fadeUp}>
+            <CopyVariants
+              variants={variants}
+              selectedIndex={selectedVariantIndex}
+              onSelect={setSelectedVariantIndex}
+              language={language}
+            />
+          </motion.div>
         )}
 
         {/* Template selector */}
-        <div>
+        <motion.div variants={fadeUp}>
           <p className="text-label mb-3">Template</p>
           <TemplateSelector
             templates={templates}
             value={tpl?.id ?? ""}
             onChange={setTplId}
           />
-        </div>
-      </div>
+        </motion.div>
+      </motion.div>
 
       {/* Plan upgrade modal */}
       <PlanModal
