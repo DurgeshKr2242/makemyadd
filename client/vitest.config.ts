@@ -16,6 +16,10 @@ export default defineConfig({
     },
   },
   resolve: {
-    alias: { "@": path.resolve(__dirname, ".") },
+    alias: {
+      "@": path.resolve(__dirname, "."),
+      // `server-only` throws in jsdom — replace with a no-op in tests.
+      "server-only": path.resolve(__dirname, "./vitest.server-only-mock.ts"),
+    },
   },
 });

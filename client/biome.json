@@ -61,6 +61,8 @@
         "lib/scrape/**",
         "lib/turnstile.ts",
         "lib/quota.ts",
+        "lib/email/**",
+        "lib/analytics/**",
         "middleware.ts",
         "app/**/layout.tsx",
         "app/**/page.tsx",

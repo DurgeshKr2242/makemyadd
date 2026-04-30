@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono, Instrument_Serif } from "next/font/google";
 import { CommandPalette } from "@/components/command/command-palette";
+import { PostHogProvider } from "@/components/providers/posthog-provider";
 import { QueryProvider } from "@/components/providers/query-provider";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -71,10 +72,12 @@ export default function RootLayout({
           Skip to content
         </a>
         <TooltipProvider delay={150}>
-          <QueryProvider>
-            {children}
-            <CommandPalette />
-          </QueryProvider>
+          <PostHogProvider>
+            <QueryProvider>
+              {children}
+              <CommandPalette />
+            </QueryProvider>
+          </PostHogProvider>
         </TooltipProvider>
         <Toaster
           position="top-right"
