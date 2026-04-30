@@ -742,7 +742,7 @@ For each route: define request/response Zod schemas in `lib/schemas/*.ts`, share
 ### 15.4 System / utility
 - [ ] `/404` custom Not Found.
 - [ ] `/500` custom error boundary.
-- [ ] `/_offline` fallback (only if PWA — defer to Phase 2).
+- [x] `/offline` fallback shipped alongside the PWA service worker — see Recent additions.
 
 ### 15.5 Modals
 - [ ] PlanModal (upsell at limit / on locked feature click).
@@ -1018,3 +1018,4 @@ Add `lib/env.ts` that runs Zod validation on startup so a missing var crashes th
 - [x] **Turnstile widget on /signup** — `components/auth/turnstile-gate.tsx` renders the @marsidev/react-turnstile widget when `NEXT_PUBLIC_TURNSTILE_SITE_KEY` is set, falls back to a "dev-bypassed" pill when unset. Landed `a54b71b`.
 - [x] **JSON-LD structured data on public pages** — `lib/seo/json-ld.tsx` exports typed builders (WebSite + Organization + Product + BreadcrumbList + ItemList of CreativeWork) and a `<JsonLd>` server component. Wired into `/`, `/pricing`, `/templates`. 5 vitest cases for the builders + 2 Playwright specs assert the script tags mount on the rendered HTML. Landed `da1f26e`.
 - [x] **Per-language Open Graph variants** — `lib/og/render.tsx` shared `renderOg(language)` ImageResponse helper using per-language Noto woff2 fetched from gstatic at edge runtime so Indic glyphs actually render. Three new edge routes at `app/og/{hi,ta,te}/route.tsx`; root `opengraph-image.tsx` refactored to use the helper. Layout metadata enumerates all four images + `alternateLocale: ["hi_IN", "ta_IN", "te_IN"]`. 1 Playwright spec confirms `/og/hi` returns a 200 PNG. Landed `3341ff4`.
+- [x] **PWA service worker + offline shell** — hand-written `public/sw.js` (no Serwist — needs webpack which is risky on canary). Cache-versioned: static `/_next/*` cache-first, fonts cache-first, HTML navigations network-first with `/offline` fallback, `/api/*` + `/auth/*` never cached. `components/pwa/sw-register.tsx` registers in production only on the `load` event. `components/pwa/install-prompt.tsx` captures Chrome's `beforeinstallprompt` + shows iOS Safari "Tap Share → Add to Home Screen" hint. `app/offline/page.tsx` renders the offline fallback. `next.config.ts` serves `/sw.js` with `Cache-Control: no-cache`, `Service-Worker-Allowed: /`. 3 vitest cases for the iOS/Chrome branch logic + 2 Playwright specs (sw.js headers + /offline page render). Landed `0983ed8`.
