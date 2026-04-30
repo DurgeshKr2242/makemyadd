@@ -6,16 +6,30 @@
  * Google Fonts or another cross-origin host, canvas.toDataURL() will throw
  * SecurityError — breaking every ad download.
  *
- * These tests run against the public /templates page (no auth required) which
- * renders one FabricCanvas per template in English. The canvas taint test
- * asserts that toDataURL() succeeds, catching the entire class of cross-origin
- * font bugs.
+ * Two-pronged coverage:
  *
- * Per-language switching lives on the auth-gated /dashboard. Those flows are
- * exercised manually or via authenticated E2E (TODO: add Supabase test user
- * fixture in a follow-up).
+ * 1. /templates (public, English rendering) — every one of the 10 seeded
+ *    canvases must pass canvas.toDataURL() to confirm the font proxy works
+ *    on the English path for all template configs.
+ *
+ * 2. /dashboard (passes through in dev mode when Supabase env is unset) —
+ *    drives the language picker through en/hi/ta/te and asserts toDataURL()
+ *    succeeds in each script. This is the high-value Indic check: it's the
+ *    one place where Devanagari / Tamil / Telugu fonts actually load via
+ *    the proxy.
+ *
+ * Once a Supabase test user fixture lands, the dashboard tests will still
+ * work — middleware only blocks when env IS set AND no session, which a
+ * fixture would handle.
  */
 import { expect, test } from "@playwright/test";
+
+const LANGS = [
+  { code: "en", name: "English" },
+  { code: "hi", name: "हिन्दी" },
+  { code: "ta", name: "தமிழ்" },
+  { code: "te", name: "తెలుగు" },
+] as const;
 
 test.describe("canvas — Indic safety", () => {
   test("/templates renders all fabric canvases without console errors", async ({
@@ -124,4 +138,50 @@ test.describe("canvas — Indic safety", () => {
       }
     }
   });
+
+  // The high-value Indic check — dashboard canvas across all 4 languages.
+  for (const lang of LANGS) {
+    test(`/dashboard — canvas renders ${lang.code} (${lang.name}) without taint`, async ({
+      page,
+    }) => {
+      await page.goto("/dashboard");
+      await page.locator("canvas").first().waitFor({ timeout: 15_000 });
+
+      // The LanguagePicker renders chip buttons with the native script as
+      // their accessible name. Click the matching one.
+      await page.getByRole("button", { name: lang.name, exact: true }).click();
+
+      // Allow the canvas to re-render with the new language's font.
+      await page.waitForTimeout(1_000);
+
+      // The taint test — call toDataURL on the rendered canvas. If a
+      // cross-origin font snuck in (bypassing the /api/fonts proxy), the
+      // canvas is tainted and this throws SecurityError.
+      const dataUrlInfo = await page
+        .locator("canvas")
+        .first()
+        .evaluate((el) => {
+          const canvas = el as HTMLCanvasElement;
+          try {
+            const url = canvas.toDataURL("image/png");
+            return {
+              ok: true as const,
+              len: url.length,
+              prefix: url.slice(0, 22),
+            };
+          } catch (err) {
+            return {
+              ok: false as const,
+              error: err instanceof Error ? err.message : String(err),
+            };
+          }
+        });
+
+      expect(dataUrlInfo.ok, JSON.stringify(dataUrlInfo)).toBe(true);
+      if (dataUrlInfo.ok) {
+        expect(dataUrlInfo.prefix).toBe("data:image/png;base64,");
+        expect(dataUrlInfo.len).toBeGreaterThan(2_000);
+      }
+    });
+  }
 });

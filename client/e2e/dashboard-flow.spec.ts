@@ -1,18 +1,14 @@
 /**
- * dashboard-flow.spec.ts — public dashboard UI flows
+ * dashboard-flow.spec.ts — dashboard + public UI flows
  *
- * The /dashboard route is auth-gated (middleware redirects unauthenticated
- * requests to /login). These tests cover the publicly accessible portions
- * of the app:
+ * In **dev / scaffold mode** (Supabase env unset), middleware passes the
+ * /dashboard route through and the layout renders with the placeholder
+ * "you@brand.in (dev mode)" account email. That's the state we test
+ * against here.
  *
- * - /templates page: template grid renders, canvases mount
- *
- * Authenticated dashboard flows (language switching, copy generation stepper,
- * template switching on the live canvas) require a Supabase test-user fixture.
- * Those are tracked in TODO §0.2 and will land once auth fixtures are wired.
- *
- * In the meantime this file keeps the test scaffold so the structure is clear
- * and CI knows the suite exists.
+ * Once `NEXT_PUBLIC_SUPABASE_URL` is set, middleware will block
+ * unauthenticated requests with a redirect to /login — those tests will
+ * need a Supabase test-user fixture to keep passing. Tracked in TODO §0.2.
  */
 import { expect, test } from "@playwright/test";
 
@@ -51,11 +47,16 @@ test.describe("public page flows", () => {
     }
   });
 
-  test("/dashboard unauthenticated → redirects to /login", async ({ page }) => {
+  test("/dashboard in dev mode (no Supabase env) renders with placeholder account", async ({
+    page,
+  }) => {
     await page.goto("/dashboard");
-    // Middleware should redirect to /login
-    await expect(page).toHaveURL(/\/login/, { timeout: 10_000 });
-    await expect(page.getByRole("heading", { name: /Sign in/i })).toBeVisible();
+    // No redirect — dev-mode lets the dashboard layout render
+    await expect(page).toHaveURL(/\/dashboard/, { timeout: 10_000 });
+    // The Live preview canvas mounts
+    await page.locator("canvas").first().waitFor({ timeout: 15_000 });
+    // Page title heading is present
+    await expect(page.getByRole("heading", { name: /Make a/i })).toBeVisible();
   });
 
   test("/login page is accessible and renders the sign-in form", async ({

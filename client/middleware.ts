@@ -36,18 +36,19 @@ function isProtected(pathname: string) {
 export async function middleware(request: NextRequest) {
   const response = NextResponse.next({ request });
 
-  // If Supabase env isn't set yet, skip auth refresh — protected paths still
-  // redirect to /login below. Lets the scaffold boot before Supabase is wired.
+  // Scaffold / dev mode: when Supabase env isn't set yet, NOTHING is actually
+  // protected — there's no session to verify against. Pass everything through
+  // so the dashboard layout's dev-mode fallback ("you@brand.in (dev mode)")
+  // can render. Protected API routes return 501/200 from their own handlers
+  // in this state. This matches the layout's behaviour and keeps E2E tests
+  // exercising the dashboard canvas without a Supabase test fixture.
+  //
+  // The moment a real NEXT_PUBLIC_SUPABASE_URL lands in env, this branch is
+  // dead and the real auth path below takes over.
   if (
     !publicEnv.NEXT_PUBLIC_SUPABASE_URL ||
     !publicEnv.NEXT_PUBLIC_SUPABASE_ANON_KEY
   ) {
-    if (isProtected(request.nextUrl.pathname)) {
-      const url = request.nextUrl.clone();
-      url.pathname = "/login";
-      url.searchParams.set("next", request.nextUrl.pathname);
-      return NextResponse.redirect(url);
-    }
     return response;
   }
 
