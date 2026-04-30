@@ -80,4 +80,32 @@ test.describe("public page flows", () => {
     // Dev-mode pill present
     await expect(page.getByText(/dev-bypassed/i)).toBeVisible();
   });
+
+  test("/ — emits WebSite + Organization JSON-LD", async ({ page }) => {
+    await page.goto("/");
+    const ldJson = await page
+      .locator('script[type="application/ld+json"]')
+      .count();
+    expect(ldJson).toBeGreaterThanOrEqual(2);
+    const firstSchema = await page
+      .locator('script[type="application/ld+json"]')
+      .first()
+      .textContent();
+    expect(firstSchema).toContain("WebSite");
+  });
+
+  test("/pricing — emits BreadcrumbList + Product JSON-LD", async ({
+    page,
+  }) => {
+    await page.goto("/pricing");
+    const scripts = page.locator('script[type="application/ld+json"]');
+    const count = await scripts.count();
+    expect(count).toBeGreaterThanOrEqual(2); // breadcrumbs + at least one product
+    // Concat all scripts and assert key strings
+    const all = await scripts.evaluateAll((els) =>
+      els.map((e) => e.textContent ?? "").join("\n"),
+    );
+    expect(all).toContain("BreadcrumbList");
+    expect(all).toContain('"priceCurrency":"INR"');
+  });
 });

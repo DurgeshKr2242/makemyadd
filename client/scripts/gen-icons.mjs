@@ -57,5 +57,5 @@ for (const f of [
   "icon-maskable-512.png",
   "apple-touch-icon.png",
 ]) {
-  console.log("  public/" + f);
+  console.log(`  public/${f}`);
 }

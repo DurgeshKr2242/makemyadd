@@ -1,5 +1,11 @@
 import type { Metadata } from "next";
 
+import {
+  buildBreadcrumbs,
+  buildTemplatesItemList,
+  JsonLd,
+} from "@/lib/seo/json-ld";
+import { TEMPLATES } from "@/lib/templates/registry";
 import { TemplatesGrid } from "./templates-grid";
 
 export const metadata: Metadata = {
@@ -10,6 +16,15 @@ export const metadata: Metadata = {
 export default function TemplatesPage() {
   return (
     <section className="mx-auto max-w-screen-xl px-4 sm:px-6 lg:px-8 py-20 sm:py-28">
+      <JsonLd
+        schemas={[
+          buildBreadcrumbs([
+            { name: "Home", path: "/" },
+            { name: "Templates", path: "/templates" },
+          ]),
+          buildTemplatesItemList(TEMPLATES),
+        ]}
+      />
       <div className="max-w-2xl mb-12">
         <p className="text-label mb-4">Templates</p>
         <h1 className="text-display">

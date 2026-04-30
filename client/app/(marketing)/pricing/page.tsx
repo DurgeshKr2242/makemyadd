@@ -5,15 +5,31 @@ import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { ButtonLink } from "@/components/ui/button-link";
 import { PLANS } from "@/lib/billing/plans";
+import { buildBreadcrumbs, buildProductPlans, JsonLd } from "@/lib/seo/json-ld";
 
 export const metadata: Metadata = {
   title: "Pricing",
   description: "Simple plans for solo founders, growing brands, and agencies.",
 };
 
+const productSchemas = buildProductPlans(
+  PLANS.map((p) => ({
+    name: p.name,
+    description: p.description,
+    price: p.price.replace(/[^\d]/g, ""), // "₹499" / "1,199" → numeric string
+    href: p.cta.href,
+  })),
+);
+
+const breadcrumbs = buildBreadcrumbs([
+  { name: "Home", path: "/" },
+  { name: "Pricing", path: "/pricing" },
+]);
+
 export default function PricingPage() {
   return (
     <>
+      <JsonLd schemas={[breadcrumbs, ...productSchemas]} />
       <section className="relative isolate overflow-hidden">
         <div
           className="absolute inset-0 -z-10 gradient-spotlight pointer-events-none"

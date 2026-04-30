@@ -2,6 +2,7 @@ import { ArrowUpRight, Languages, Sparkles, Wand2, Zap } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { ButtonLink } from "@/components/ui/button-link";
+import { buildOrganization, buildWebSite, JsonLd } from "@/lib/seo/json-ld";
 import { Hero } from "./hero";
 
 const LANGS = [
@@ -59,6 +60,8 @@ const FEATURES = [
 export default function Home() {
   return (
     <>
+      <JsonLd schemas={[buildWebSite(), buildOrganization()]} />
+
       {/* ─────────── HERO ─────────── */}
       <Hero />
 
