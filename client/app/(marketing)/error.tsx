@@ -1,5 +1,6 @@
 "use client";
 
+import * as Sentry from "@sentry/nextjs";
 import { AlertTriangle, RefreshCw } from "lucide-react";
 import { useEffect } from "react";
 
@@ -14,8 +15,8 @@ export default function MarketingError({
   reset: () => void;
 }) {
   useEffect(() => {
-    // Defer to Sentry once wired (TODO §19). For now log to the browser
-    // so the user sees something while we still have console.
+    // Sentry capture is a no-op when NEXT_PUBLIC_SENTRY_DSN is unset.
+    Sentry.captureException(error, { tags: { boundary: "marketing" } });
     console.error("[marketing] route error:", error);
   }, [error]);
 

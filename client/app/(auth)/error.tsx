@@ -1,5 +1,6 @@
 "use client";
 
+import * as Sentry from "@sentry/nextjs";
 import { AlertTriangle, RefreshCw } from "lucide-react";
 import { useEffect } from "react";
 
@@ -14,6 +15,7 @@ export default function AuthError({
   reset: () => void;
 }) {
   useEffect(() => {
+    Sentry.captureException(error, { tags: { boundary: "auth" } });
     console.error("[auth] route error:", error);
   }, [error]);
 
