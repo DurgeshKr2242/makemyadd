@@ -67,7 +67,7 @@ Use the **canary / latest** channel on every package that ships agent affordance
 - [x] **Scraping:** `cheerio@1.2.0`.
 - [ ] **Hashing:** `sharp-phash`. Defer until §7.3 BG-cache wiring.
 - [x] **Image utils:** `sharp@0.34.5`. Already noted to set `serverExternalPackages: ['sharp']` in `next.config.ts` when first used.
-- [x] **Testing:** `vitest@4.1.5`, `jsdom`, `@testing-library/react`, `@testing-library/jest-dom`, `@vitest/coverage-v8`. **Pending:** `playwright`, `msw`, `@playwright/mcp` — defer until E2E lands.
+- [x] **Testing:** `vitest@4.1.5`, `jsdom`, `@testing-library/react`, `@testing-library/jest-dom`, `@vitest/coverage-v8`, `@playwright/test@1.59.1` (Chromium-only, with per-language Indic canvas-taint coverage). **Pending:** `msw` (defer to API integration tests), `@playwright/mcp` (separate dev tool).
 - [x] **Misc:** `nanoid@5.1.9`. **Pending:** `date-fns`, `isomorphic-dompurify`, `tiny-invariant`.
 
 ---
