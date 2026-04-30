@@ -1,6 +1,5 @@
 "use client";
 
-import type { Metadata } from "next";
 import { useState } from "react";
 
 import { InputForm, type InputValue } from "@/components/generate/input-form";

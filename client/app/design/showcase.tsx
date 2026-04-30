@@ -8,18 +8,20 @@ import {
   Circle,
   Download,
   Eye,
-  Globe,
   Loader2,
   Palette,
   Plus,
   Sparkles,
-  Trash2,
-  Upload,
   X,
 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
-
+// Components we're showcasing
+import { CopyVariants } from "@/components/generate/copy-variants";
+import {
+  type ProgressStep,
+  ProgressStepper,
+} from "@/components/generate/progress-stepper";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -92,10 +94,6 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-
-// Components we're showcasing
-import { CopyVariants } from "@/components/generate/copy-variants";
-import { ProgressStepper, type ProgressStep } from "@/components/generate/progress-stepper";
 
 // ─── Static data ──────────────────────────────────────────────────────────────
 
@@ -272,7 +270,10 @@ export function DesignShowcase() {
     >
       {/* Header */}
       <header className="relative mb-16 pb-12 border-b border-border">
-        <div className="absolute inset-0 -z-10 gradient-spotlight pointer-events-none" aria-hidden />
+        <div
+          className="absolute inset-0 -z-10 gradient-spotlight pointer-events-none"
+          aria-hidden
+        />
         <div className="flex items-center gap-2 text-label mb-6">
           <Palette className="h-3.5 w-3.5" />
           Design system · v0.2
@@ -403,9 +404,7 @@ export function DesignShowcase() {
               <CardContent className="grid md:grid-cols-2 gap-8">
                 <div>
                   <p className="text-caption mb-3">Geist Sans (default hero)</p>
-                  <p className="text-display leading-none">
-                    Make an ad today.
-                  </p>
+                  <p className="text-display leading-none">Make an ad today.</p>
                 </div>
                 <div>
                   <p className="text-caption mb-3">
@@ -569,10 +568,18 @@ export function DesignShowcase() {
                     <Button variant={variant} size="icon" aria-label={variant}>
                       <Plus className="h-4 w-4" strokeWidth={1.75} />
                     </Button>
-                    <Button variant={variant} size="icon-sm" aria-label={`${variant} sm`}>
+                    <Button
+                      variant={variant}
+                      size="icon-sm"
+                      aria-label={`${variant} sm`}
+                    >
                       <Plus className="h-3.5 w-3.5" strokeWidth={1.75} />
                     </Button>
-                    <Button variant={variant} size="icon-xs" aria-label={`${variant} xs`}>
+                    <Button
+                      variant={variant}
+                      size="icon-xs"
+                      aria-label={`${variant} xs`}
+                    >
                       <Plus className="h-3 w-3" strokeWidth={1.75} />
                     </Button>
                   </Group>
@@ -586,7 +593,8 @@ export function DesignShowcase() {
                     Pricing
                   </ButtonLink>
                   <ButtonLink href="/billing" variant="secondary" size="lg">
-                    Upgrade <ArrowRight className="h-4 w-4" strokeWidth={1.75} />
+                    Upgrade{" "}
+                    <ArrowRight className="h-4 w-4" strokeWidth={1.75} />
                   </ButtonLink>
                 </Group>
 
@@ -746,7 +754,10 @@ export function DesignShowcase() {
                 </ul>
               </CardContent>
               <CardFooter>
-                <ButtonLink href="/billing?plan=starter" className="w-full justify-center">
+                <ButtonLink
+                  href="/billing?plan=starter"
+                  className="w-full justify-center"
+                >
                   Upgrade <ArrowRight className="h-4 w-4" strokeWidth={1.75} />
                 </ButtonLink>
               </CardFooter>
@@ -774,7 +785,11 @@ export function DesignShowcase() {
                 </ul>
               </CardContent>
               <CardFooter>
-                <ButtonLink href="/billing?plan=pro" variant="secondary" className="w-full justify-center">
+                <ButtonLink
+                  href="/billing?plan=pro"
+                  variant="secondary"
+                  className="w-full justify-center"
+                >
                   Upgrade
                 </ButtonLink>
               </CardFooter>
@@ -833,7 +848,9 @@ export function DesignShowcase() {
 
             <Card>
               <CardHeader>
-                <CardTitle className="text-label">CopyVariants (Hindi)</CardTitle>
+                <CardTitle className="text-label">
+                  CopyVariants (Hindi)
+                </CardTitle>
               </CardHeader>
               <CardContent>
                 <CopyVariants
@@ -1095,8 +1112,8 @@ export function DesignShowcase() {
               <p className="text-label">.gradient-aurora</p>
               <p className="text-h2 mt-2">Festival sale energy</p>
               <p className="text-body text-muted-foreground mt-2">
-                Three radial gradients — saffron, indigo, marigold. Use only
-                for hero sections (once per site).
+                Three radial gradients — saffron, indigo, marigold. Use only for
+                hero sections (once per site).
               </p>
             </div>
             <div className="rounded-2xl gradient-spotlight p-8 border border-border">
@@ -1109,8 +1126,9 @@ export function DesignShowcase() {
           </div>
 
           <p className="text-caption mt-4">
-            Note: earlier names <code className="text-mono">.gradient-mesh</code>{" "}
-            and <code className="text-mono">.gradient-saffron-radial</code> no
+            Note: earlier names{" "}
+            <code className="text-mono">.gradient-mesh</code> and{" "}
+            <code className="text-mono">.gradient-saffron-radial</code> no
             longer exist — update any usages to{" "}
             <code className="text-mono">.gradient-aurora</code> /{" "}
             <code className="text-mono">.gradient-spotlight</code>.
@@ -1120,10 +1138,10 @@ export function DesignShowcase() {
 
       <footer className="mt-20 pt-8 border-t border-border">
         <p className="text-caption">
-          Source of truth:{" "}
-          <code className="text-mono">client/DESIGN.md</code> · Skill:{" "}
-          <code className="text-mono">.claude/skills/ui/SKILL.md</code> ·
-          Page: <code className="text-mono">client/app/design/showcase.tsx</code>
+          Source of truth: <code className="text-mono">client/DESIGN.md</code> ·
+          Skill: <code className="text-mono">.claude/skills/ui/SKILL.md</code> ·
+          Page:{" "}
+          <code className="text-mono">client/app/design/showcase.tsx</code>
         </p>
       </footer>
     </main>

@@ -159,7 +159,7 @@ function UploadPane({
       <div className="rounded-xl border border-border bg-card p-4 flex items-center gap-4">
         {/* Thumbnail */}
         <div className="h-14 w-14 shrink-0 rounded-lg overflow-hidden bg-muted border border-border">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
+          {/* biome-ignore lint/performance/noImgElement: blob URLs from URL.createObjectURL() are not compatible with next/image */}
           <img
             src={value.previewUrl}
             alt={value.file.name}
@@ -273,9 +273,7 @@ function UrlPane({
   value: InputValue;
   onChange: (v: InputValue) => void;
 }) {
-  const [draft, setDraft] = useState(
-    value.type === "url" ? value.url : "",
-  );
+  const [draft, setDraft] = useState(value.type === "url" ? value.url : "");
   const [error, setError] = useState<string | null>(null);
 
   // "Selected" URL card
@@ -283,10 +281,7 @@ function UrlPane({
     return (
       <div className="rounded-xl border border-border bg-card p-4 flex items-center gap-4">
         <div className="h-10 w-10 shrink-0 rounded-lg bg-muted border border-border flex items-center justify-center">
-          <Globe
-            className="h-4 w-4 text-muted-foreground"
-            strokeWidth={1.75}
-          />
+          <Globe className="h-4 w-4 text-muted-foreground" strokeWidth={1.75} />
         </div>
 
         <div className="flex-1 min-w-0">

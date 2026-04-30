@@ -1,9 +1,8 @@
 "use client";
 
 import { ArrowUpRight, Check, Sparkles, X } from "lucide-react";
-
-import { ButtonLink } from "@/components/ui/button-link";
 import { Badge } from "@/components/ui/badge";
+import { ButtonLink } from "@/components/ui/button-link";
 import {
   Dialog,
   DialogClose,
@@ -59,6 +58,7 @@ export function PlanModal({
             <DialogClose
               render={
                 <button
+                  type="button"
                   className="shrink-0 mt-0.5 h-7 w-7 rounded-md flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-accent transition-colors duration-fast focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background outline-none"
                   aria-label="Close"
                 >
@@ -143,7 +143,10 @@ export function PlanModal({
                   >
                     Choose {plan.name}
                     {plan.cta.variant === "default" ? (
-                      <ArrowUpRight className="h-3.5 w-3.5" strokeWidth={1.75} />
+                      <ArrowUpRight
+                        className="h-3.5 w-3.5"
+                        strokeWidth={1.75}
+                      />
                     ) : null}
                   </ButtonLink>
                 </article>
