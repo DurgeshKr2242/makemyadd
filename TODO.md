@@ -63,7 +63,7 @@ Use the **canary / latest** channel on every package that ships agent affordance
 - [x] **Email:** `resend@latest` + `react-email@latest` + `@react-email/components`. Lazy server client, typed `EmailResult` sender, first welcome template (saffron CTA on near-black, inline hex for email-client compat), 4 vitest cases. Inert until `RESEND_API_KEY` lands. Landed `23f52a1`.
 - [x] **Analytics:** `posthog-js@latest` + `posthog-node@latest`. Server-side `captureServerEvent` + client `<PostHogProvider>` (autocapture clicks/forms, page-view on route change, opted-out in dev). Inert until `NEXT_PUBLIC_POSTHOG_KEY` lands. Landed `23f52a1`.
 - [x] **Errors:** `@sentry/nextjs@10.51.0` instrumentation files (client/server/edge configs + instrumentation.ts + per-route error.tsx Sentry.captureException). Inert until SENTRY_DSN lands. Landed `783336f`.
-- [ ] **Bot:** `@marsidev/react-turnstile`. Defer until signup wiring.
+- [x] **Bot:** `@marsidev/react-turnstile@1.5.1`. `<TurnstileGate>` mounted in signup card with three render states (dev-bypass / loading / verified / error). Dark theme, flexible size. Token captured into local state ready for the §6 Supabase wiring. Landed `a54b71b`.
 - [x] **Scraping:** `cheerio@1.2.0`.
 - [ ] **Hashing:** `sharp-phash`. Defer until §7.3 BG-cache wiring.
 - [x] **Image utils:** `sharp@0.34.5`. Already noted to set `serverExternalPackages: ['sharp']` in `next.config.ts` when first used.
