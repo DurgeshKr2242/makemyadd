@@ -1008,3 +1008,10 @@ Add `lib/env.ts` that runs Zod validation on startup so a missing var crashes th
 | 18 Vercel Deployment | 24 |
 | 19 Cost Breakdown | 25 |
 | 20 Phase 2 Hooks | 26 |
+
+---
+
+## Recent additions (post-Jun-2026 sweep — landed after the spec was written)
+
+- [x] **Motion entrance choreography** — `lib/motion/entrance.ts` exports `fadeUp` / `fadeUpHero` / `staggerChildren` Apple-cadence variants. Wired into landing hero (eyebrow + h1 + sub + CTA stagger), dashboard preview card (fadeUpHero), auth login/signup cards. Honours `useReducedMotion` (initial:false → no animation when opted out). Landed `0a9691f`.
+- [x] **Power-user keyboard shortcuts** — `lib/hooks/use-shortcuts.ts` with cmdk-style input-focus guard. Dashboard binds D (download), G (generate), 1/2/3 (switch variants). Visible kbd hint row under canvas card on lg+. 4 vitest cases. Landed `0a9691f`.
