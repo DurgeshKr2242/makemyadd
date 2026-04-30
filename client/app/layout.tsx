@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono, Instrument_Serif } from "next/font/google";
+import { CommandPalette } from "@/components/command/command-palette";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import "./globals.css";
@@ -68,7 +69,10 @@ export default function RootLayout({
         >
           Skip to content
         </a>
-        <TooltipProvider delay={150}>{children}</TooltipProvider>
+        <TooltipProvider delay={150}>
+          {children}
+          <CommandPalette />
+        </TooltipProvider>
         <Toaster
           position="top-right"
           richColors

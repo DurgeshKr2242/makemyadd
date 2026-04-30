@@ -1,6 +1,9 @@
-import { ChevronDown, Sparkles } from "lucide-react";
+"use client";
+
+import { ChevronDown, Search, Sparkles } from "lucide-react";
 import Link from "next/link";
 
+import { openCommandPalette } from "@/components/command/command-palette";
 import { UsageBadge } from "@/components/dashboard/usage-badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -46,8 +49,22 @@ export function DashboardHeader({ userEmail }: { userEmail?: string }) {
           </nav>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2">
+          {/* ⌘K search trigger — between nav and UsageBadge */}
+          <button
+            type="button"
+            onClick={openCommandPalette}
+            aria-label="Open command palette"
+            className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent transition-colors duration-fast focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background outline-none"
+          >
+            <Search className="h-3.5 w-3.5" strokeWidth={1.75} />
+            <kbd className="hidden lg:inline font-mono text-[10px] tracking-wider border border-border rounded px-1 py-0.5 bg-muted">
+              ⌘K
+            </kbd>
+          </button>
+
           <UsageBadge />
+
           <DropdownMenu>
             <DropdownMenuTrigger
               render={
