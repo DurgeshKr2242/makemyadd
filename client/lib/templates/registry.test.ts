@@ -38,4 +38,22 @@ describe("template registry", () => {
     expect(out.length).toBe(1);
     expect(out[0].id).toBe("urgency_red_01_1x1");
   });
+
+  it("filterTemplates returns 9x16 templates", () => {
+    const out = filterTemplates({ format: "9x16" });
+    expect(out.length).toBeGreaterThanOrEqual(3);
+    expect(out.every((t) => t.format === "9x16")).toBe(true);
+  });
+
+  it("filterTemplates returns 4x5 templates", () => {
+    const out = filterTemplates({ format: "4x5" });
+    expect(out.length).toBeGreaterThanOrEqual(3);
+    expect(out.every((t) => t.format === "4x5")).toBe(true);
+  });
+
+  it("filterTemplates by trust category returns trust_badge", () => {
+    const out = filterTemplates({ category: "trust" });
+    expect(out.length).toBeGreaterThanOrEqual(1);
+    expect(out.every((t) => t.category === "trust")).toBe(true);
+  });
 });
