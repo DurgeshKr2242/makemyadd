@@ -41,6 +41,38 @@ export const metadata: Metadata = {
     process.env.NEXT_PUBLIC_APP_URL ?? "https://adcreator.in",
   ),
   icons: { icon: "/favicon.ico" },
+  openGraph: {
+    type: "website",
+    locale: "en_IN",
+    alternateLocale: ["hi_IN", "ta_IN", "te_IN"],
+    siteName: "AdCreator",
+    images: [
+      {
+        url: "/opengraph-image",
+        width: 1200,
+        height: 630,
+        alt: "AdCreator — English",
+      },
+      {
+        url: "/og/hi",
+        width: 1200,
+        height: 630,
+        alt: "AdCreator — हिन्दी",
+      },
+      {
+        url: "/og/ta",
+        width: 1200,
+        height: 630,
+        alt: "AdCreator — தமிழ்",
+      },
+      {
+        url: "/og/te",
+        width: 1200,
+        height: 630,
+        alt: "AdCreator — తెలుగు",
+      },
+    ],
+  },
 };
 
 export const viewport: Viewport = {

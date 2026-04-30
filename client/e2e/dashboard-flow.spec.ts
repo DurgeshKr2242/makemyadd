@@ -108,4 +108,10 @@ test.describe("public page flows", () => {
     expect(all).toContain("BreadcrumbList");
     expect(all).toContain('"priceCurrency":"INR"');
   });
+
+  test("/og/hi returns a 1200×630 PNG", async ({ request }) => {
+    const res = await request.get("/og/hi");
+    expect(res.status()).toBe(200);
+    expect(res.headers()["content-type"]).toContain("image/png");
+  });
 });
