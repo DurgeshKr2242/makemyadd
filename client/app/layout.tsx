@@ -41,7 +41,24 @@ export const metadata: Metadata = {
   metadataBase: new URL(
     process.env.NEXT_PUBLIC_APP_URL ?? "https://adcreator.in",
   ),
+  alternates: { canonical: "/" },
   icons: { icon: "/favicon.ico" },
+  // iOS Safari auto-links anything that looks like a phone/email by
+  // default — and our copy deliberately includes things like "30s" that
+  // get mangled into a date prompt. Disable the heuristic.
+  formatDetection: {
+    telephone: false,
+    date: false,
+    email: false,
+    address: false,
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "AdCreator — AI ads for Indian small businesses",
+    description:
+      "Generate professional ad creatives in Hindi, Tamil, Telugu, and English in under 30 seconds.",
+    images: ["/opengraph-image"],
+  },
   openGraph: {
     type: "website",
     locale: "en_IN",

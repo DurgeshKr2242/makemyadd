@@ -1,9 +1,16 @@
 import { ArrowUpRight, Languages, Sparkles, Wand2, Zap } from "lucide-react";
+import type { Metadata } from "next";
 
 import { Badge } from "@/components/ui/badge";
 import { ButtonLink } from "@/components/ui/button-link";
 import { buildOrganization, buildWebSite, JsonLd } from "@/lib/seo/json-ld";
 import { Hero } from "./hero";
+
+export const metadata: Metadata = {
+  // absolute bypasses the "%s · AdCreator" template — landing should read clean.
+  title: { absolute: "AdCreator — AI ads for Indian small businesses" },
+  alternates: { canonical: "/" },
+};
 
 const LANGS = [
   {

@@ -11,6 +11,18 @@ import { TemplatesGrid } from "./templates-grid";
 export const metadata: Metadata = {
   title: "Templates",
   description: "Browse all available ad templates by category and format.",
+  alternates: { canonical: "/templates" },
+  openGraph: {
+    title: "Templates — AdCreator",
+    description:
+      "Ten launch templates across 1×1, 9×16, and 4×5. Pre-tested at every supported Indic script for overflow.",
+    url: "/templates",
+  },
+  twitter: {
+    title: "Templates — AdCreator",
+    description:
+      "Ten launch templates across three formats. Pre-tested for Devanagari, Tamil, and Telugu overflow.",
+  },
 };
 
 export default function TemplatesPage() {

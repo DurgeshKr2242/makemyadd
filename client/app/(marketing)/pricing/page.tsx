@@ -10,6 +10,18 @@ import { buildBreadcrumbs, buildProductPlans, JsonLd } from "@/lib/seo/json-ld";
 export const metadata: Metadata = {
   title: "Pricing",
   description: "Simple plans for solo founders, growing brands, and agencies.",
+  alternates: { canonical: "/pricing" },
+  openGraph: {
+    title: "Pricing — AdCreator",
+    description:
+      "Free for the first five ads. Paid plans from ₹499/month with INR billing + UPI accepted.",
+    url: "/pricing",
+  },
+  twitter: {
+    title: "Pricing — AdCreator",
+    description:
+      "Free for the first five ads. Paid plans from ₹499/month with INR billing + UPI accepted.",
+  },
 };
 
 const productSchemas = buildProductPlans(
