@@ -87,6 +87,25 @@ This codebase is agent-friendly. Several files exist to make agents produce good
 
 If you find yourself fighting an agent, the fix is usually to add a rule to `AGENTS.md` rather than to hand-correct each file. Make the constraint visible and the agent will follow it next time.
 
+## End-to-end tests
+
+Playwright E2E lives in `client/e2e/`. Critical coverage:
+
+- `canvas-indic.spec.ts` — renders the Fabric canvas in all 4 supported
+  languages and asserts `canvas.toDataURL()` succeeds (catches the
+  cross-origin canvas-taint bug class).
+- `dashboard-flow.spec.ts` — clicks through the full mock generation
+  flow + template switching.
+
+```bash
+pnpm test:e2e        # headless, exits 0/1
+pnpm test:e2e:ui     # interactive UI mode for debugging
+```
+
+E2E tests boot a production build via `pnpm build && pnpm start`. First
+run after a fresh clone needs Playwright's Chromium binary —
+`pnpm test:e2e:install` downloads it (~150 MB, one-off).
+
 ## Questions
 
 - Build / scope questions → check `TODO.md` (the living build plan)
