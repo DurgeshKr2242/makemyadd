@@ -16,6 +16,17 @@ This version has breaking changes — APIs, conventions, and file structure may 
 - Product spec (immutable): `docs/adcreator_technical_spec.pdf` (and the extracted text alongside). Quote the spec section number in PR descriptions when implementing a feature so reviewers can map back.
 - **Design system source of truth: `client/DESIGN.md`.** Read it before any UI/UX work. Tokens, motion, density, accessibility, anti-patterns. The `.claude/skills/ui/SKILL.md` skill auto-activates on UI requests and enforces this doc — do not bypass it.
 
+## Agent ecosystem
+
+This file is the source of truth. The following mirrors point at it for agents that don't read AGENTS.md directly:
+
+- **Claude Code**: `CLAUDE.md` (single-line `@AGENTS.md` import) + `.claude/skills/ui/SKILL.md` for UI work
+- **Cursor**: `.cursor/rules/project.mdc` (always-apply rule that links here)
+- **GitHub Copilot**: `.github/copilot-instructions.md` (auto-loaded on suggestions)
+- **Gemini CLI / OpenCode / others**: read this file directly per the AGENTS.md convention
+
+When you change a rule here, update the mirrors so the rule reaches every agent. The mirrors should stay short — link back to this file rather than duplicating long sections.
+
 ## Tooling
 
 - Package manager: **pnpm** (corepack-managed; do not introduce `npm install` or `yarn`).

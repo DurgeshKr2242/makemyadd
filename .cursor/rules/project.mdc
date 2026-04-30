@@ -1,0 +1,21 @@
+---
+description: AdCreator project rules
+globs:
+  - "client/**/*.{ts,tsx}"
+  - "client/**/*.{css,json}"
+alwaysApply: true
+---
+
+This is the AdCreator project. Read **`AGENTS.md` at the repo root** before any code change — that file is the source of truth for project rules.
+
+The five rules that bite most often:
+
+1. **Stack** — Next.js 16 canary + Tailwind v4 + Biome (NOT eslint/prettier) + shadcn `base-nova` (Base UI under the hood; composition prop is `render`, not `asChild`; Vaul is the one Radix exception). pnpm only — never `npm install`.
+2. **`<ButtonLink>` for navigation, `<Button>` for actions.** Never `<Button render={<Link/>}>` — produces hydration mismatches + Base UI nativeButton warnings. See `client/components/ui/button-link.tsx`.
+3. **Design tokens only.** No `bg-zinc-*`, no hex, no `text-white`. Use semantic tokens (`bg-card`, `text-foreground`, `text-muted-foreground`, `border-border`). Read `client/DESIGN.md` before any UI change. Pair Geist + one Instrument Serif moment per surface.
+4. **Indic safety** — any change to `client/components/canvas/FabricCanvas.tsx`, the font-proxy routes (`app/api/fonts/*`, `app/api/fontfile/*`), or copy-generation prompts requires running the per-language Playwright snapshot test (`pnpm test:e2e`). Never load Google Fonts directly into the canvas — it taints `toDataURL()`.
+5. **Server-only guards** — `lib/supabase/admin.ts` and `lib/env.server.ts` import `"server-only"`. Never reach for them from a Client Component or any file under `app/(dashboard)/`.
+
+Tooling commands: `pnpm dev`, `pnpm test`, `pnpm test:e2e`, `pnpm typecheck`, `pnpm lint:fix`, `pnpm build`. All from `client/`.
+
+Conventional Commits required (`feat:` `fix:` `chore:` `docs:` `refactor:` `test:` `ci:` `perf:`). Hooks enforce this — do not bypass with `--no-verify`.
