@@ -1,0 +1,260 @@
+# AdCreator — Full documentation
+
+# AdCreator
+
+> AI ad creator for Indian small businesses. Drop a product photo, pick a language, get three studio-quality ad creatives in 30 seconds — copy written natively in Hindi, Tamil, Telugu, or English; background removed; composited onto a brand-perfect template.
+
+| | |
+|---|---|
+| Stack | Next.js 16 (canary, App Router) · React 19 · Tailwind v4 · TypeScript strict · shadcn/ui (`base-nova` / Base UI) · Geist + Instrument Serif · Fabric.js · vitest · Biome |
+| Backend | Supabase (Postgres + Auth + RLS) · Cloudflare R2 · Groq (llama-3.3-70b) · HuggingFace (RMBG-1.4) · Razorpay · Cloudflare Turnstile · Resend |
+| Languages | English · हिन्दी · தமிழ் · తెలుగు |
+| Live demo | _deployment pending_ |
+
+---
+
+## Repo layout
+
+```
+makemyadd/
+├── client/               ← Next.js application (everything you cd into for daily work)
+│   ├── app/              ← App Router routes (auth / marketing / dashboard / api)
+│   ├── components/       ← UI primitives (ui/) + domain components (canvas/, generate/, billing/, command/)
+│   ├── lib/              ← Server + client helpers (supabase/, r2/, groq/, hf/, razorpay/, …)
+│   ├── supabase/         ← DB migrations, seed, supabase config.toml
+│   ├── DESIGN.md         ← Design system source of truth (read before any UI work)
+│   ├── biome.json        ← Lint/format (NOT eslint/prettier — Biome owns both)
+│   ├── .env.example      ← Copy to .env.local
+│   └── package.json
+├── docs/                 ← Product spec PDF + extracted text
+├── tools/mcp-doctor.mjs  ← Pings every MCP server in .mcp.json
+├── .claude/skills/ui/    ← Project skill that auto-activates on UI work
+├── AGENTS.md             ← Rules for AI coding agents (Claude / Cursor / Copilot)
+├── CLAUDE.md             ← `@AGENTS.md` import for Claude Code
+├── CONTRIBUTING.md       ← Branch strategy, commit style, PR checklist
+├── TODO.md               ← Living build plan
+└── .mcp.json             ← MCP server catalogue
+```
+
+---
+
+## Prerequisites
+
+- **Node.js 20+** (we use 24 in dev — anything ≥ 20.10 works)
+- **pnpm 10+** (corepack-managed; do not use npm or yarn)
+- **git**
+- Optional for full stack: a Supabase project, Groq API key, HuggingFace token, Cloudflare R2 keys, Razorpay test keys
+
+You can boot and click through the entire UI **without** any external creds — the dashboard runs the generation flow against a mock state machine, the canvas renders real Fabric.js previews, and 9 of 10 API routes return Zod-validated 501 stubs ready to be implemented when keys land.
+
+---
+
+## Quickstart
+
+```bash
+git clone git@github.com:DurgeshKr2242/makemyadd.git
+cd makemyadd/client
+pnpm install
+cp .env.example .env.local      # all values can stay blank — they coerce to undefined
+pnpm dev                        # http://localhost:3000
+```
+
+Then open:
+
+| URL | Purpose |
+|---|---|
+| `/` | Marketing landing |
+| `/dashboard` | Generation studio — drop a file, hit Generate, watch the 6-step stepper, swap variants |
+| `/templates` | Real Fabric.js previews of all 10 templates |
+| `/design` | Design system showcase — every token, type sample, primitive |
+| `/pricing` | 4-plan grid (Free / Starter / Pro / Agency) |
+| `/api/templates` | JSON list, filterable by `?format=` `?category=` |
+
+Press `⌘K` (or `Ctrl+K`) anywhere for the command palette.
+
+---
+
+## Daily commands
+
+All run from `client/`.
+
+```bash
+pnpm dev          # next dev (port 3000)
+pnpm build        # production build
+pnpm typecheck    # tsc --noEmit (no emit, just types)
+pnpm lint         # biome check
+pnpm lint:fix     # biome check --write
+pnpm format       # biome format --write
+pnpm test         # vitest run
+pnpm test:watch   # vitest in watch mode
+pnpm test:coverage
+pnpm mcp:doctor   # pings every MCP server in .mcp.json
+```
+
+---
+
+## Environment variables
+
+All env vars live in `client/.env.local` (gitignored). `client/.env.example` is the canonical reference. Empty / blank values are coerced to `undefined` by `client/lib/env.ts` and `lib/env.server.ts`, so you can leave anything unset until that integration is wired.
+
+**Required to boot** (fall back to dev-mode placeholders if unset):
+
+- `NEXT_PUBLIC_SUPABASE_URL`
+- `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+
+**Server-only** (each unlocks the matching API route stub):
+
+| Var | Unlocks |
+|---|---|
+| `SUPABASE_SERVICE_ROLE_KEY` | RLS-bypass paths (webhook, quota helpers) |
+| `GROQ_API_KEY` | `/api/generate/copy`, `/api/generate/extract` (vision) |
+| `HUGGINGFACE_TOKEN` | `/api/generate/bgremove` |
+| `CLOUDFLARE_ACCOUNT_ID` + `R2_ACCESS_KEY_ID` + `R2_SECRET_ACCESS_KEY` | `/api/upload/presign` and processed-image storage |
+| `RAZORPAY_KEY_ID` + `RAZORPAY_KEY_SECRET` | `/api/payments/create-order`, `/api/payments/cancel` |
+| `RAZORPAY_WEBHOOK_SECRET` | `/api/payments/webhook` (HMAC verify; route 503s without it — fail-closed) |
+| `TURNSTILE_SECRET_KEY` | `/api/turnstile/verify` (already implemented; uses dev bypass without the key) |
+| `RESEND_API_KEY` | Transactional email |
+| `SENTRY_DSN` | Error monitoring |
+| `NEXT_PUBLIC_POSTHOG_KEY` | Product analytics |
+
+See TODO.md §20 for the complete reference.
+
+---
+
+## Architecture in one paragraph
+
+Single Next.js app. UI is dark-first Apple-cadence (Geist + Instrument Serif) with a saffron accent. Templates are typed JSON configs (`TemplateConfig`) stored in `client/lib/templates/configs/`. The renderer is **Fabric.js client-side only** — no server canvas. Google Fonts are proxied through `/api/fonts/[family]` + `/api/fontfile/[...path]` to avoid CORS taint on `canvas.toDataURL()`. Background removal calls HuggingFace's serverless `RMBG-1.4`, copy generation calls Groq `llama-3.3-70b-versatile` with one Zod-validated system prompt per language. Quota is gated server-side before the Groq call. Razorpay handles INR billing with HMAC-verified webhooks. Auth is Supabase with RLS on every user-facing table; the service-role client is `server-only`-guarded and Biome-restricted from any non-server code path.
+
+---
+
+## Working with AI agents
+
+This repo is **agent-optimised**. Several files exist specifically to make agents (Claude Code, Cursor, Copilot, Gemini) produce good code without re-deriving conventions:
+
+- **`AGENTS.md`** at the repo root — agents read this first.
+- **`CLAUDE.md`** — single-line `@AGENTS.md` import for Claude Code.
+- **`client/DESIGN.md`** — design system source of truth. Read before any UI change.
+- **`.claude/skills/ui/SKILL.md`** — auto-activates on UI requests, enforces DESIGN.md.
+- **`.mcp.json`** — 11 MCP servers wired (Next.js, Supabase ×2, Cloudflare R2 + Observability, Vercel, Sentry, PostHog, GitHub, shadcn, Playwright).
+- **`client/node_modules/next/dist/docs/`** — Next.js docs version-matched to the installed canary.
+
+---
+
+## Troubleshooting
+
+### "Supabase env vars not set" on `pnpm dev`
+
+The dashboard layout falls back to dev mode if `NEXT_PUBLIC_SUPABASE_URL` is empty. Look for `you@brand.in (dev mode)` in the account dropdown — that's expected.
+
+### Indic text appears as `□□□` on the canvas
+
+The font proxy (`/api/fonts/[family]`) needs to load the correct Noto family for the selected language. If you see tofu, hit `/api/fonts/noto-sans-devanagari` directly in your browser.
+
+### Canvas overflowing the wrapper
+
+Fabric.js writes `width: 1080px` inline styles that override Tailwind. We call `canvas.setDimensions({...}, { cssOnly: true })` after init to scale the CSS pixels.
+
+### Razorpay test cards (sandbox)
+
+| Card | Outcome |
+|---|---|
+| `4111 1111 1111 1111` | Success |
+| `5104 0600 0000 0008` | Success (Mastercard) |
+| `4012 0010 3852 1234` | Failure (insufficient funds) |
+| UPI VPA `success@razorpay` | Success |
+| UPI VPA `failure@razorpay` | Failure |
+
+CVV: any 3 digits. Expiry: any future date. Never use real PAN / UPI / GST in fixtures or commit messages.
+
+### HF cold start blowing the Vercel function timeout
+
+Vercel Hobby has a 10s function timeout. HuggingFace's RMBG-1.4 endpoint can take 5–8s on cold start.
+
+### `pnpm mcp:doctor` shows servers DOWN
+
+`nextjs` is expected DOWN until `pnpm dev` is running. Anything else DOWN means the URL/token in `.mcp.json` needs updating.
+
+---
+
+## Deployment
+
+We deploy to **Vercel**. Push `main` to the GitHub repo connected to the Vercel project. Set every env var from `client/.env.example` in Vercel → Settings → Environment Variables. Custom domain `adcreator.in` proxied through Cloudflare.
+
+---
+
+## License
+
+Proprietary — all rights reserved. Internal project. Not for redistribution.
+
+# ---
+
+# Contributing
+
+> **Read [`AGENTS.md`](./AGENTS.md) and [`client/DESIGN.md`](./client/DESIGN.md) before your first commit.**
+
+## Branching
+
+- `main` — protected, deploys to production. Only fast-forward merges from feature branches.
+- `feat/<topic>`, `fix/<topic>`, `chore/<topic>`, `docs/<topic>`, `refactor/<topic>` — feature branches.
+- One feature per branch. Don't pile unrelated work into the same PR.
+
+## Commit messages — Conventional Commits
+
+| Prefix | Use |
+|---|---|
+| `feat:` | New feature visible to end users |
+| `fix:` | Bug fix |
+| `chore:` | Tooling / dependency / scaffolding |
+| `docs:` | Docs-only |
+| `refactor:` | Code change that's not a bug or feature |
+| `test:` | Test-only |
+| `style:` | Pure formatting |
+| `perf:` | Performance improvement |
+
+## PR checklist
+
+- [ ] `pnpm typecheck` clean
+- [ ] `pnpm lint` clean (Biome)
+- [ ] `pnpm test` clean (vitest)
+- [ ] `pnpm build` clean
+- [ ] If the change touches UI: visited the page in dark mode at 360 / 768 / 1280 / 1920 px
+- [ ] If the change touches text rendering: rendered with a Devanagari + Tamil sample
+- [ ] Vercel preview is green
+
+## Tooling rules
+
+- **pnpm** only — no `npm install`, no `yarn`.
+- **Biome** for lint + format — no eslint, no prettier.
+- **TypeScript strict** — `noUncheckedIndexedAccess` on. No `any`.
+- **Tailwind v4** — CSS-first config. Theme tokens live in `client/app/globals.css` `@theme` block.
+- **shadcn `base-nova`** preset (Base UI) — composition prop is **`render`**, not `asChild`. Vaul is the one Radix exception.
+- **`<ButtonLink>` for navigation, `<Button>` for actions.** Never `<Button render={<Link>}>`.
+- **`motion/react`** for orchestrated motion — never `framer-motion`.
+- **`lucide-react`** for icons — never inline SVG except in branded marks.
+- **Conventional Commits** required.
+
+## Git hooks
+
+Husky + lint-staged + commitlint:
+
+- **Pre-commit** — `biome check --write` runs on staged files.
+- **Pre-push** — `tsc --noEmit` runs against the whole tree.
+- **Commit-msg** — commitlint verifies Conventional Commits format.
+
+## End-to-end tests
+
+Playwright E2E lives in `client/e2e/`:
+
+- `canvas-indic.spec.ts` — renders Fabric canvas in all 4 languages, asserts `toDataURL()` succeeds.
+- `dashboard-flow.spec.ts` — clicks through the full mock generation flow.
+
+```bash
+pnpm test:e2e        # headless
+pnpm test:e2e:ui     # interactive UI mode
+```
+
+## Questions
+
+- Build / scope questions → check `TODO.md`
+- Spec questions → `docs/adcreator_technical_spec.pdf`
+- Anything else → `hello@adcreator.in`

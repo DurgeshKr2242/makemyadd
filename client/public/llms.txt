@@ -1,0 +1,18 @@
+# AdCreator
+
+> AI ad creator for Indian small businesses. Drop a product photo, pick a language, get three studio-quality ad creatives in 30 seconds — copy written natively in Hindi, Tamil, Telugu, or English; background removed; composited onto a brand-perfect template.
+
+The product is a Next.js app that runs Fabric.js client-side for canvas rendering, Groq for ad-copy generation in 4 Indian languages, HuggingFace RMBG-1.4 for background removal, Cloudflare R2 for image storage, and Razorpay for INR billing. Code is open at https://github.com/DurgeshKr2242/makemyadd.
+
+## Documentation
+
+- [README](https://github.com/DurgeshKr2242/makemyadd/blob/main/README.md): Quickstart, env reference, troubleshooting
+- [CONTRIBUTING](https://github.com/DurgeshKr2242/makemyadd/blob/main/CONTRIBUTING.md): Branching, commit style, PR checklist
+- [AGENTS.md](https://github.com/DurgeshKr2242/makemyadd/blob/main/AGENTS.md): Project rules for AI coding agents
+- [DESIGN.md](https://github.com/DurgeshKr2242/makemyadd/blob/main/client/DESIGN.md): Apple-dark design system source of truth
+- [TODO.md](https://github.com/DurgeshKr2242/makemyadd/blob/main/TODO.md): Living build plan
+- [Spec](https://github.com/DurgeshKr2242/makemyadd/blob/main/docs/adcreator_technical_spec.pdf): Immutable product spec
+
+## Optional
+
+- [llms-full.txt](/llms-full.txt): Full content dump for ingestion
