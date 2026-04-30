@@ -57,7 +57,7 @@ Use the **canary / latest** channel on every package that ships agent affordance
 - [x] **Canvas:** `fabric@5.5.2` + `@types/fabric` — dynamic-imported in `FabricCanvas`.
 - [x] **Payments:** `razorpay@2.9.6` (server SDK). Razorpay Checkout will load via `<Script>` at use site.
 - [x] **Validation:** `zod@4.3.6`.
-- [ ] **State:** `@tanstack/react-query`, `zustand`. Defer until first data-fetching component lands.
+- [x] **State:** `@tanstack/react-query@latest` + `zustand@latest`. QueryProvider client island wired in app/layout.tsx with sane defaults (60s staleTime floor, no refetch-on-focus, 4xx-skip retry, devtools in dev). First useTemplates() hook + useGenerationStore landed in `800edc3`.
 - [x] **UI:** `tailwindcss@4`, `lucide-react@1.14.0`, `class-variance-authority`, `clsx`, `tailwind-merge`.
   - shadcn@canary `base-nova` preset (Base UI primitives, **`render` prop not `asChild`**) + 25 components installed.
 - [ ] **Email:** `resend`, `react-email`. Defer.
@@ -122,7 +122,7 @@ The whole bootstrap aims at one outcome: **every tool in the stack is reachable 
 }
 ```
 
-- [ ] Add a `pnpm mcp:doctor` script that pings each configured MCP and reports up/down. Run in CI nightly.
+- [x] Added `pnpm mcp:doctor` script via `tools/mcp-doctor.mjs`. (CI nightly run pending — depends on a separate cron workflow.)
 - [ ] Document MCP auth token sources in README's "AI agent setup" section. Tokens go in `~/.config/claude/.env` or per-MCP keychains, **never** committed.
 
 ### 0.5.4 Documentation grounding
@@ -180,7 +180,7 @@ Mirror the spec exactly so file paths stay grep-able against the doc.
 - [x] `client/app/(dashboard)/billing/success/page.tsx`
 - [x] `client/app/(dashboard)/settings/page.tsx`
 - [~] `client/app/api/upload/presign/route.ts` (Zod + auth shell, 501 — body lands with §5)
-- [~] `client/app/api/generate/extract/route.ts` (Zod + auth shell, 501 — body lands with §6)
+- [x] `client/app/api/generate/extract/route.ts` — URL path REAL (Cheerio + SSRF guard, 5s timeout, 2 MB streaming cap, content-type allowlist, 422 on scrape failure, 15 vitest cases). Photo path still 501 (needs GROQ_API_KEY for vision). Landed `3579a6c`.
 - [~] `client/app/api/generate/bgremove/route.ts` (Zod + auth shell, 501 — body lands with §7)
 - [~] `client/app/api/generate/copy/route.ts` (Zod + Turnstile + auth shell, 501 — body lands with §8)
 - [~] `client/app/api/generations/route.ts` (cursor/limit Zod + auth shell, 501)
@@ -205,9 +205,9 @@ Mirror the spec exactly so file paths stay grep-able against the doc.
 - [x] `client/lib/generate/use-mock-generation.ts` (mock state machine for the 6-step flow + fake variants per language; 2 vitest cases via fake timers)
 - [x] `client/components/ui/button-link.tsx` (Next Link styled with `buttonVariants` — replaces all `<Button render={<Link/>}>` patterns; documented in DESIGN.md)
 - [ ] `client/components/canvas/FormatSwitcher.tsx` (defer — current TemplateSelector covers it adequately)
-- [ ] `client/components/generate/InputForm.tsx`
-- [ ] `client/components/generate/ProgressStepper.tsx`
-- [ ] `client/components/billing/PlanModal.tsx`
+- [x] `client/components/generate/InputForm.tsx` (drag-drop + URL validation, 9 vitest cases — landed in `4218e75`)
+- [x] `client/components/generate/ProgressStepper.tsx` (6-step, running/done/failed states — landed in `86ddc72`)
+- [x] `client/components/billing/PlanModal.tsx` (4-plan upgrade modal — landed in `53f1fbc`)
 - [x] `client/components/dashboard/usage-badge.tsx` (placeholder; quota wiring pending)
 - [x] `client/components/dashboard/dashboard-header.tsx`
 - [x] `client/components/marketing/site-header.tsx`, `site-footer.tsx`, `legal-page.tsx`
