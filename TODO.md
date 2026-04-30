@@ -60,8 +60,8 @@ Use the **canary / latest** channel on every package that ships agent affordance
 - [x] **State:** `@tanstack/react-query@latest` + `zustand@latest`. QueryProvider client island wired in app/layout.tsx with sane defaults (60s staleTime floor, no refetch-on-focus, 4xx-skip retry, devtools in dev). First useTemplates() hook + useGenerationStore landed in `800edc3`.
 - [x] **UI:** `tailwindcss@4`, `lucide-react@1.14.0`, `class-variance-authority`, `clsx`, `tailwind-merge`.
   - shadcn@canary `base-nova` preset (Base UI primitives, **`render` prop not `asChild`**) + 25 components installed.
-- [ ] **Email:** `resend`, `react-email`. Defer.
-- [ ] **Analytics:** PostHog wizard. Defer.
+- [x] **Email:** `resend@latest` + `react-email@latest` + `@react-email/components`. Lazy server client, typed `EmailResult` sender, first welcome template (saffron CTA on near-black, inline hex for email-client compat), 4 vitest cases. Inert until `RESEND_API_KEY` lands. Landed `23f52a1`.
+- [x] **Analytics:** `posthog-js@latest` + `posthog-node@latest`. Server-side `captureServerEvent` + client `<PostHogProvider>` (autocapture clicks/forms, page-view on route change, opted-out in dev). Inert until `NEXT_PUBLIC_POSTHOG_KEY` lands. Landed `23f52a1`.
 - [x] **Errors:** `@sentry/nextjs@10.51.0` instrumentation files (client/server/edge configs + instrumentation.ts + per-route error.tsx Sentry.captureException). Inert until SENTRY_DSN lands. Landed `783336f`.
 - [ ] **Bot:** `@marsidev/react-turnstile`. Defer until signup wiring.
 - [x] **Scraping:** `cheerio@1.2.0`.
