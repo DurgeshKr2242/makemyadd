@@ -1,0 +1,56 @@
+// client/lib/templates/configs/urgency-red-1x1.ts
+import type { TemplateConfig } from "@/lib/templates/types";
+
+export const urgencyRed1x1: TemplateConfig = {
+  id: "urgency_red_01_1x1",
+  format: "1x1",
+  category: "urgency",
+  canvas: { width: 1080, height: 1080, background: "#C81D25" },
+  layers: [
+    {
+      type: "text",
+      key: "headline",
+      x: 80,
+      y: 80,
+      maxWidth: 920,
+      fontSize: 96,
+      fontFamily: "Noto Sans",
+      fill: "#ffffff",
+      fontWeight: "700",
+    },
+    { type: "product", x: 200, y: 380, w: 680, h: 460, shadow: true },
+    {
+      type: "text",
+      key: "subheadline",
+      x: 80,
+      y: 880,
+      maxWidth: 920,
+      fontSize: 32,
+      fontFamily: "Noto Sans",
+      fill: "#fde2e4",
+      fontWeight: "400",
+    },
+    {
+      type: "cta_btn",
+      x: 80,
+      y: 970,
+      w: 920,
+      h: 80,
+      fill: "#111111",
+      textFill: "#ffffff",
+      rx: 16,
+    },
+    {
+      type: "text",
+      key: "cta",
+      x: 540,
+      y: 1010,
+      maxWidth: 920,
+      fontSize: 28,
+      fontFamily: "Noto Sans",
+      fill: "#ffffff",
+      fontWeight: "700",
+      textAlign: "center",
+    },
+  ],
+};
