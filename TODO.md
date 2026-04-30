@@ -62,7 +62,7 @@ Use the **canary / latest** channel on every package that ships agent affordance
   - shadcn@canary `base-nova` preset (Base UI primitives, **`render` prop not `asChild`**) + 25 components installed.
 - [ ] **Email:** `resend`, `react-email`. Defer.
 - [ ] **Analytics:** PostHog wizard. Defer.
-- [ ] **Errors:** Sentry wizard. Defer.
+- [x] **Errors:** `@sentry/nextjs@10.51.0` instrumentation files (client/server/edge configs + instrumentation.ts + per-route error.tsx Sentry.captureException). Inert until SENTRY_DSN lands. Landed `783336f`.
 - [ ] **Bot:** `@marsidev/react-turnstile`. Defer until signup wiring.
 - [x] **Scraping:** `cheerio@1.2.0`.
 - [ ] **Hashing:** `sharp-phash`. Defer until §7.3 BG-cache wiring.
