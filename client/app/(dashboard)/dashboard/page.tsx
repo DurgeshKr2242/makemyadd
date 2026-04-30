@@ -97,7 +97,6 @@ export default function DashboardPage() {
             <CanvasPreview
               templates={TEMPLATES}
               defaultTemplateId={TEMPLATES[0]?.id ?? ""}
-              language="hi"
             />
           </div>
         </div>

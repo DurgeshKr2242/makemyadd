@@ -5,12 +5,16 @@ import { useState } from "react";
 
 import { FabricCanvas } from "@/components/canvas/FabricCanvas";
 import { TemplateSelector } from "@/components/canvas/TemplateSelector";
+import { CopyVariants } from "@/components/generate/copy-variants";
+import { LanguagePicker } from "@/components/generate/language-picker";
+import { ProgressStepper } from "@/components/generate/progress-stepper";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { useMockGeneration } from "@/lib/generate/use-mock-generation";
 import type { TemplateConfig } from "@/lib/templates/types";
-import type { Language } from "@/lib/types";
+import type { Language, Tone } from "@/lib/types";
 
-const SAMPLE_COPY: Record<
+const DEFAULT_COPY: Record<
   Language,
   { headline: string; subheadline: string; cta: string }
 > = {
@@ -45,19 +49,51 @@ const SAMPLE_IMAGE =
 export interface CanvasPreviewProps {
   templates: readonly TemplateConfig[];
   defaultTemplateId: string;
-  language: Language;
 }
 
 export function CanvasPreview({
   templates,
   defaultTemplateId,
-  language,
 }: CanvasPreviewProps) {
   const [tplId, setTplId] = useState(defaultTemplateId);
+  const [language, setLanguage] = useState<Language>("hi");
+  const [tone, setTone] = useState<Tone>("festive");
+  const [selectedVariantIndex, setSelectedVariantIndex] = useState(0);
+
+  const { status, steps, variants, start, reset } = useMockGeneration(language);
+
   const tpl = templates.find((t) => t.id === tplId) ?? templates[0];
+
+  const activeCopy =
+    variants.length === 3
+      ? (variants[selectedVariantIndex] ?? DEFAULT_COPY[language])
+      : DEFAULT_COPY[language];
+
+  const isRunning = status === "running";
+  const isComplete = status === "complete";
 
   return (
     <div className="space-y-5">
+      {/* Language & tone picker */}
+      <LanguagePicker
+        language={language}
+        onLanguageChange={(lang) => {
+          setLanguage(lang);
+          reset();
+        }}
+        tone={tone}
+        onToneChange={setTone}
+      />
+
+      {/* Progress stepper — visible while running */}
+      {isRunning && (
+        <div className="bg-card border border-border rounded-2xl px-5 py-4">
+          <p className="text-label mb-4">Generating</p>
+          <ProgressStepper steps={steps} />
+        </div>
+      )}
+
+      {/* Canvas card */}
       <div className="spotlight-card relative bg-card border border-border rounded-3xl p-6 sm:p-8 shadow-lg">
         <div className="flex items-center justify-between mb-6">
           <p className="text-label">Live preview</p>
@@ -74,21 +110,45 @@ export function CanvasPreview({
             <FabricCanvas
               template={tpl}
               productImageUrl={SAMPLE_IMAGE}
-              copy={SAMPLE_COPY[language]}
+              copy={activeCopy}
               language={language}
               displayWidth={420}
             />
           ) : null}
         </div>
 
-        <div className="mt-6 flex justify-end gap-2">
+        <div className="mt-6 flex items-center justify-between gap-2">
           <Button variant="outline" disabled>
             Download
           </Button>
-          <Button disabled>Generate copy</Button>
+          {isComplete ? (
+            <Button
+              variant="secondary"
+              onClick={() => {
+                reset();
+              }}
+            >
+              Generate again
+            </Button>
+          ) : (
+            <Button onClick={start} disabled={isRunning} aria-busy={isRunning}>
+              {isRunning ? "Generating…" : "Generate copy"}
+            </Button>
+          )}
         </div>
       </div>
 
+      {/* Copy variants — visible once generation is complete */}
+      {isComplete && variants.length === 3 && (
+        <CopyVariants
+          variants={variants}
+          selectedIndex={selectedVariantIndex}
+          onSelect={setSelectedVariantIndex}
+          language={language}
+        />
+      )}
+
+      {/* Template selector */}
       <div>
         <p className="text-label mb-3">Template</p>
         <TemplateSelector
