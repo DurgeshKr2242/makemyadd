@@ -69,4 +69,15 @@ test.describe("public page flows", () => {
     // Google sign-in button should be present
     await expect(page.getByRole("button", { name: /Google/i })).toBeVisible();
   });
+
+  test("/signup — dev-mode renders the bot-bypass hint, no Turnstile widget", async ({
+    page,
+  }) => {
+    await page.goto("/signup");
+    await expect(
+      page.getByRole("heading", { name: /Create your/i }),
+    ).toBeVisible({ timeout: 10_000 });
+    // Dev-mode pill present
+    await expect(page.getByText(/dev-bypassed/i)).toBeVisible();
+  });
 });

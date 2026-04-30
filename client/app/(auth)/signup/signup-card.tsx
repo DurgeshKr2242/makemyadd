@@ -2,7 +2,9 @@
 
 import { motion, useReducedMotion } from "motion/react";
 import Link from "next/link";
+import { useState } from "react";
 
+import { TurnstileGate } from "@/components/auth/turnstile-gate";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -10,6 +12,9 @@ import { fadeUpHero } from "@/lib/motion/entrance";
 
 export function SignupCard() {
   const reducedMotion = useReducedMotion();
+  // TODO §13 — pass _turnstileToken to the Supabase auth submit handler once wired.
+  // Prefixed with _ because the read side is intentional infrastructure (collected but not yet consumed).
+  const [_turnstileToken, setTurnstileToken] = useState<string | null>(null);
 
   return (
     <motion.div
@@ -63,9 +68,7 @@ export function SignupCard() {
           />
         </div>
 
-        <div className="rounded-lg border border-dashed border-border bg-background/50 px-3 py-2.5 text-caption">
-          Bot check appears here once Turnstile keys are set.
-        </div>
+        <TurnstileGate onVerified={setTurnstileToken} />
 
         <Button type="submit" className="w-full" disabled>
           Create account

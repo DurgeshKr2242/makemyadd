@@ -23,6 +23,9 @@ importers:
       '@huggingface/inference':
         specifier: ^4.13.15
         version: 4.13.15
+      '@marsidev/react-turnstile':
+        specifier: ^1.5.1
+        version: 1.5.1(react-dom@19.2.5(react@19.2.5))(react@19.2.5)
       '@react-email/components':
         specifier: ^1.0.12
         version: 1.0.12(react-dom@19.2.5(react@19.2.5))(react@19.2.5)
@@ -1168,6 +1171,12 @@ packages:
   '@mapbox/node-pre-gyp@1.0.11':
     resolution: {integrity: sha512-Yhlar6v9WQgUp/He7BdgzOz8lqMQ8sU+jkCq7Wx8Myc5YFJLbEe7lgui/V7G1qB1DJykHSGwreceSaD60Y0PUQ==}
     hasBin: true
+
+  '@marsidev/react-turnstile@1.5.1':
+    resolution: {integrity: sha512-dGZeOWEh1t9AfkR0G94k48+gciIzTNz8GhEatIGTk43ZBynWFfHxmgv1ZiSPkJBYBhSqeqfgFMp+nqFbZAViyQ==}
+    peerDependencies:
+      react: ^17.0.2 || ^18.0.0 || ^19.0
+      react-dom: ^17.0.2 || ^18.0.0 || ^19.0
 
   '@modelcontextprotocol/sdk@1.29.0':
     resolution: {integrity: sha512-zo37mZA9hJWpULgkRpowewez1y6ML5GsXJPY8FI0tBBCd77HEvza4jDqRKOXgHNn867PVGCyTdzqpz0izu5ZjQ==}
@@ -7041,6 +7050,11 @@ snapshots:
       - encoding
       - supports-color
     optional: true
+
+  '@marsidev/react-turnstile@1.5.1(react-dom@19.2.5(react@19.2.5))(react@19.2.5)':
+    dependencies:
+      react: 19.2.5
+      react-dom: 19.2.5(react@19.2.5)
 
   '@modelcontextprotocol/sdk@1.29.0(zod@3.25.76)':
     dependencies:
