@@ -1,0 +1,2 @@
+# Hooks run from the repo root. Our package.json + tooling is in client/.
+cd client && pnpm exec lint-staged

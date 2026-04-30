@@ -1,0 +1,2 @@
+# Block the push if types are red.
+cd client && pnpm typecheck

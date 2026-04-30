@@ -1,0 +1,2 @@
+# Conventional Commits enforced by commitlint. See CONTRIBUTING.md.
+cd client && pnpm exec commitlint --edit "$1"
