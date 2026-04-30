@@ -849,7 +849,7 @@ Add `lib/env.ts` that runs Zod validation on startup so a missing var crashes th
 - [ ] Size cap on upload (10 MB) and HF input (16 MB sharp pre-resize).
 - [ ] RLS on every table; service role only for cache/webhook tables.
 - [ ] Sanitise scraped HTML before storing.
-- [ ] CSP headers (`Content-Security-Policy`) — script-src self + Razorpay + Cloudflare + Vercel + PostHog + Sentry.
+- [x] CSP headers — full set in `lib/security/csp.ts`: script-src self + Razorpay + Turnstile + PostHog + Vercel; img-src self+data+blob+R2+Supabase; connect-src self + Sentry/PostHog/Supabase(wss)/Razorpay; frame-src Razorpay+Turnstile; object-src none; frame-ancestors none. Plus X-Frame-Options/X-Content-Type-Options/Referrer-Policy/Permissions-Policy. 8 vitest cases + 3 Playwright specs verify headers reach browser AND no CSP violations on /dashboard or /templates. `unsafe-inline` on script-src documented + tracked for nonce refactor. Landed `0bd6c77`.
 - [ ] HSTS via Vercel default; verify after domain mapping.
 - [ ] Cookie flags (`SameSite=Lax`, `Secure`, `HttpOnly`) — handled by `@supabase/ssr`.
 - [ ] Rate limit `/api/generate/extract` per user (5/min) via Vercel KV or in-memory if low scale.
