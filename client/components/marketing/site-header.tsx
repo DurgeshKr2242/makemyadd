@@ -1,7 +1,7 @@
 import { ArrowUpRight, Sparkles } from "lucide-react";
 import Link from "next/link";
 
-import { Button } from "@/components/ui/button";
+import { ButtonLink } from "@/components/ui/button-link";
 
 const NAV = [
   { href: "/pricing", label: "Pricing" },
@@ -39,23 +39,16 @@ export function SiteHeader() {
         </nav>
 
         <div className="flex items-center gap-2">
-          <Button
-            variant="ghost"
-            size="sm"
-            render={<Link href="/login">Sign in</Link>}
-          />
-          <Button
-            size="sm"
-            render={
-              <Link href="/signup" className="group">
-                Get started{" "}
-                <ArrowUpRight
-                  className="ml-0.5 transition-transform duration-fast group-hover:translate-x-0.5 group-hover:-translate-y-0.5"
-                  strokeWidth={2}
-                />
-              </Link>
-            }
-          />
+          <ButtonLink href="/login" variant="ghost" size="sm">
+            Sign in
+          </ButtonLink>
+          <ButtonLink href="/signup" size="sm" className="group/cta">
+            Get started{" "}
+            <ArrowUpRight
+              className="ml-0.5 transition-transform duration-fast group-hover/cta:translate-x-0.5 group-hover/cta:-translate-y-0.5"
+              strokeWidth={2}
+            />
+          </ButtonLink>
         </div>
       </div>
     </header>

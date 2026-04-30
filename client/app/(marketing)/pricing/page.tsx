@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { ButtonLink } from "@/components/ui/button-link";
 
 export const metadata: Metadata = {
   title: "Pricing",
@@ -163,16 +163,14 @@ export default function PricingPage() {
               </ul>
 
               <div className="mt-8 pt-6 border-t border-border">
-                <Button
+                <ButtonLink
+                  href={plan.cta.href}
                   variant={plan.cta.variant}
                   className="w-full"
-                  render={
-                    <Link href={plan.cta.href}>
-                      {plan.cta.label}
-                      {plan.cta.variant === "default" ? <ArrowUpRight /> : null}
-                    </Link>
-                  }
-                />
+                >
+                  {plan.cta.label}
+                  {plan.cta.variant === "default" ? <ArrowUpRight /> : null}
+                </ButtonLink>
               </div>
             </article>
           ))}

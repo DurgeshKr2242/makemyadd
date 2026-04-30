@@ -1,8 +1,7 @@
 import { ImageIcon, Plus } from "lucide-react";
 import type { Metadata } from "next";
-import Link from "next/link";
 
-import { Button } from "@/components/ui/button";
+import { ButtonLink } from "@/components/ui/button-link";
 import { Card, CardContent } from "@/components/ui/card";
 
 export const metadata: Metadata = {
@@ -19,13 +18,9 @@ export default function HistoryPage() {
             Every ad you've made — re-download, remix, or share.
           </p>
         </div>
-        <Button
-          render={
-            <Link href="/dashboard">
-              <Plus /> New ad
-            </Link>
-          }
-        />
+        <ButtonLink href="/dashboard">
+          <Plus /> New ad
+        </ButtonLink>
       </div>
 
       {/* Empty state — list lands once §11.1 GET /api/generations is wired. */}
@@ -40,10 +35,9 @@ export default function HistoryPage() {
             Drop a product photo to make your first one — your generations show
             up here.
           </p>
-          <Button
-            className="mt-2"
-            render={<Link href="/dashboard">Make first ad</Link>}
-          />
+          <ButtonLink href="/dashboard" className="mt-2">
+            Make first ad
+          </ButtonLink>
         </CardContent>
       </Card>
     </div>

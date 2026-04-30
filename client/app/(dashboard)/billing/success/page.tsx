@@ -1,8 +1,7 @@
 import { CheckCircle2 } from "lucide-react";
 import type { Metadata } from "next";
-import Link from "next/link";
 
-import { Button } from "@/components/ui/button";
+import { ButtonLink } from "@/components/ui/button-link";
 import { Card, CardContent } from "@/components/ui/card";
 
 export const metadata: Metadata = {
@@ -24,11 +23,10 @@ export default function BillingSuccessPage() {
             page polls.)
           </p>
           <div className="flex gap-2 mt-2">
-            <Button render={<Link href="/dashboard">Make a new ad</Link>} />
-            <Button
-              variant="outline"
-              render={<Link href="/billing">View plan</Link>}
-            />
+            <ButtonLink href="/dashboard">Make a new ad</ButtonLink>
+            <ButtonLink href="/billing" variant="outline">
+              View plan
+            </ButtonLink>
           </div>
         </CardContent>
       </Card>

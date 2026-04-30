@@ -1,9 +1,9 @@
 import { ArrowLeft, Download, Wand2 } from "lucide-react";
 import type { Metadata } from "next";
-import Link from "next/link";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { ButtonLink } from "@/components/ui/button-link";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 export const metadata: Metadata = {
@@ -20,15 +20,9 @@ export default async function GenerationDetailPage({
   return (
     <div className="mx-auto max-w-screen-xl px-4 sm:px-6 lg:px-8 py-8 lg:py-10">
       <div className="mb-6">
-        <Button
-          variant="ghost"
-          size="sm"
-          render={
-            <Link href="/history">
-              <ArrowLeft /> Back
-            </Link>
-          }
-        />
+        <ButtonLink href="/history" variant="ghost" size="sm">
+          <ArrowLeft /> Back
+        </ButtonLink>
       </div>
 
       <div className="grid gap-6 lg:grid-cols-[1fr_320px]">

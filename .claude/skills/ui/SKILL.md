@@ -184,15 +184,39 @@ If the component fetches data, ship the matching `<Skeleton>` and the empty/erro
 This shadcn preset (`base-nova`) is built on **Base UI**, not Radix. The composition prop is **`render`**, not `asChild`:
 
 ```tsx
-// ✅ correct
-<Button render={<Link href="/signup">Get started</Link>} />
+// ✅ correct — DialogTrigger renders a real <button>
 <DialogTrigger render={<Button variant="outline">Open</Button>} />
 
 // ❌ this will TypeScript-error and not behave correctly
-<Button asChild><Link href="/signup">Get started</Link></Button>
+<DialogTrigger asChild><Button variant="outline">Open</Button></DialogTrigger>
 ```
 
 Drawer (Vaul) is the one exception — Radix-based, uses `asChild`. If a primitive's import path is `@base-ui/react/*`, use `render`. If it's `vaul` or `@radix-ui/*`, use `asChild`.
+
+### Buttons that navigate — use `<ButtonLink>`, NOT `<Button render={<Link/>}>`
+
+Base UI's `<Button>` defaults to `nativeButton: true` — it expects a real `<button>`. Forcing it to `render={<Link />}` does three bad things:
+
+1. Emits a console warning every render (`Base UI: A component that acts as a button expected a native <button>`).
+2. Hydration mismatch — Base UI's class-merger adds variant classes like `group` differently SSR vs client, you get a `className didn't match` error.
+3. Loses native button semantics in forms / a11y.
+
+Use **`<ButtonLink>`** (in `client/components/ui/button-link.tsx`) for navigation. It's a Next `<Link>` styled with the shared `buttonVariants` — no Base UI wrapper, no warnings, no hydration drift.
+
+```tsx
+// ✅ correct — link styled like a button
+<ButtonLink href="/signup" size="lg">
+  Get started <ArrowUpRight />
+</ButtonLink>
+
+// ✅ correct — real button (onClick handler)
+<Button onClick={handleClick}>Save draft</Button>
+
+// ❌ never — produces hydration mismatch + nativeButton warning
+<Button render={<Link href="/signup">Get started</Link>} />
+```
+
+Rule of thumb: if the action is `href=`, use `<ButtonLink>`. If the action is `onClick=` or `type="submit"`, use `<Button>`.
 
 ---
 

@@ -67,6 +67,20 @@ export function FabricCanvas({
         });
         fabricRef.current = c;
 
+        // Fabric writes inline `width: 1080px; height: 1080px` styles on
+        // both the <canvas> and the wrapping div fabric injects, which
+        // overrides our `width: 100%`. Tell fabric to scale the CSS-only
+        // dimensions to our display size while keeping the internal
+        // resolution at template native (so exports stay 1080px crisp).
+        const scale = displayWidth / template.canvas.width;
+        c.setDimensions(
+          {
+            width: `${displayWidth}px`,
+            height: `${template.canvas.height * scale}px`,
+          },
+          { cssOnly: true },
+        );
+
         for (const layer of template.layers) {
           await renderLayer(
             fabric,
@@ -107,9 +121,7 @@ export function FabricCanvas({
       fc?.dispose?.();
       fabricRef.current = null;
     };
-  }, [template, productImageUrl, copy, language, watermark]);
-
-  const aspect = template.canvas.height / template.canvas.width;
+  }, [template, productImageUrl, copy, language, watermark, displayWidth]);
 
   return (
     <div
@@ -119,24 +131,21 @@ export function FabricCanvas({
         width: displayWidth,
         aspectRatio: `${template.canvas.width} / ${template.canvas.height}`,
         position: "relative",
+        // Fabric inserts a wrapper <div class="canvas-container"> around
+        // the <canvas> with inline pixel dimensions matching the native
+        // resolution. Constraining max-width on this outer wrapper plus
+        // the cssOnly setDimensions call inside useEffect keeps everything
+        // sized to displayWidth.
+        maxWidth: "100%",
+        overflow: "hidden",
       }}
     >
-      <canvas
-        ref={canvasRef}
-        style={{
-          width: "100%",
-          height: "100%",
-          display: "block",
-          borderRadius: 12,
-        }}
-      />
+      <canvas ref={canvasRef} style={{ display: "block", borderRadius: 12 }} />
       {error ? (
         <p className="absolute inset-0 flex items-center justify-center text-caption text-destructive p-4 text-center">
           Canvas error: {error}
         </p>
       ) : null}
-      {/* Avoid unused-var lint on aspect (used implicitly via aspectRatio) */}
-      <span className="sr-only">{aspect.toFixed(2)}</span>
     </div>
   );
 }

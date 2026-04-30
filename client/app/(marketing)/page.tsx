@@ -6,10 +6,9 @@ import {
   Wand2,
   Zap,
 } from "lucide-react";
-import Link from "next/link";
 
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { ButtonLink } from "@/components/ui/button-link";
 
 const LANGS = [
   {
@@ -100,19 +99,12 @@ export default function Home() {
               </p>
 
               <div className="mt-9 flex flex-wrap items-center gap-3">
-                <Button
-                  size="lg"
-                  render={
-                    <Link href="/signup">
-                      Make my first ad <ArrowUpRight />
-                    </Link>
-                  }
-                />
-                <Button
-                  size="lg"
-                  variant="outline"
-                  render={<Link href="/templates">Browse templates</Link>}
-                />
+                <ButtonLink href="/signup" size="lg">
+                  Make my first ad <ArrowUpRight />
+                </ButtonLink>
+                <ButtonLink href="/templates" size="lg" variant="outline">
+                  Browse templates
+                </ButtonLink>
                 <span className="text-caption ml-2 hidden sm:inline">
                   No card · 5 free ads · cancel anytime
                 </span>
@@ -280,19 +272,12 @@ export default function Home() {
             Five free ads on us. No card. No catch. See for yourself.
           </p>
           <div className="mt-10 flex flex-wrap justify-center gap-3">
-            <Button
-              size="lg"
-              render={
-                <Link href="/signup">
-                  Make my first ad <ArrowUpRight />
-                </Link>
-              }
-            />
-            <Button
-              size="lg"
-              variant="outline"
-              render={<Link href="/pricing">See pricing</Link>}
-            />
+            <ButtonLink href="/signup" size="lg">
+              Make my first ad <ArrowUpRight />
+            </ButtonLink>
+            <ButtonLink href="/pricing" size="lg" variant="outline">
+              See pricing
+            </ButtonLink>
           </div>
         </div>
       </section>
