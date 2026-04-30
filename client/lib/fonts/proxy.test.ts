@@ -31,4 +31,24 @@ describe("rewriteFontCss", () => {
     expect(out).toContain("font-weight: 400");
     expect(out).toContain('format("woff2")');
   });
+
+  it("rewrites a single-quoted gstatic url", () => {
+    const input = `@font-face { src: url('https://fonts.gstatic.com/s/notosans/v30/file.woff2') format("woff2"); }`;
+    const out = rewriteFontCss(input, "/api/fontfile");
+    expect(out).toContain("/api/fontfile/s%2Fnotosans%2Fv30%2Ffile.woff2");
+    expect(out).not.toContain("fonts.gstatic.com");
+  });
+
+  it("rewrites a double-quoted gstatic url", () => {
+    const input = `@font-face { src: url("https://fonts.gstatic.com/s/x.woff2") format("woff2"); }`;
+    const out = rewriteFontCss(input, "/api/fontfile");
+    expect(out).toContain("/api/fontfile/s%2Fx.woff2");
+    expect(out).not.toContain("fonts.gstatic.com");
+  });
+
+  it("emits a quoted url so paths containing parens or special chars stay valid", () => {
+    const input = `@font-face { src: url(https://fonts.gstatic.com/s/a.woff2); }`;
+    const out = rewriteFontCss(input, "/api/fontfile");
+    expect(out).toMatch(/url\("\/api\/fontfile\//);
+  });
 });
