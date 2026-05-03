@@ -15,9 +15,6 @@ export interface UrlPaneProps {
   value: InputValue;
   onChange: (v: InputValue) => void;
   onProductExtracted?: (product: ExtractResponse) => void;
-  /** Set in Task 13 — opens the manual-entry dialog when scrape returns
-   *  a fallback-eligible error code. Optional so this component compiles
-   *  ahead of the dashboard wiring. */
   onRequestManualEntry?: (hint: ManualEntryHint) => void;
 }
 
@@ -26,11 +23,13 @@ type ExtractState =
   | { status: "loading" }
   | { status: "error"; message: string };
 
+const FALLBACK_CODES = new Set(["no_metadata", "login_wall", "vision_failed"]);
+
 export function UrlPane({
   value,
   onChange,
   onProductExtracted,
-  onRequestManualEntry: _onRequestManualEntry,
+  onRequestManualEntry,
 }: UrlPaneProps) {
   const [draft, setDraft] = useState(value.type === "url" ? value.url : "");
   const [error, setError] = useState<string | null>(null);
@@ -45,12 +44,10 @@ export function UrlPane({
         <div className="h-10 w-10 shrink-0 rounded-lg bg-muted border border-border flex items-center justify-center">
           <Globe className="h-4 w-4 text-muted-foreground" strokeWidth={1.75} />
         </div>
-
         <div className="flex-1 min-w-0">
           <p className="text-body-sm font-medium truncate">{value.url}</p>
           <p className="text-caption mt-0.5">Product URL</p>
         </div>
-
         <Button
           variant="ghost"
           size="icon-sm"
@@ -87,24 +84,27 @@ export function UrlPane({
 
       if (res.ok) {
         const product = (await res.json()) as ExtractResponse;
-        // Surface the extracted data to the parent before marking URL as set
         onProductExtracted?.(product);
         onChange({ type: "url", url: trimmed });
         setExtractState({ status: "idle" });
-      } else if (res.status >= 400 && res.status < 500) {
-        const body = (await res.json().catch(() => null)) as {
-          message?: string;
-        } | null;
-        const msg =
-          body?.message ??
-          "Could not extract product details from this URL. Try uploading a photo instead.";
-        setExtractState({ status: "error", message: msg });
-      } else {
-        setExtractState({
-          status: "error",
-          message: "Extraction failed — try again or upload directly.",
-        });
+        return;
       }
+      const body = (await res.json().catch(() => null)) as {
+        error?: string;
+        message?: string;
+      } | null;
+
+      if (body?.error && FALLBACK_CODES.has(body.error)) {
+        // Open the manual-entry dialog with a useful hint.
+        onRequestManualEntry?.({ source: "url", urlIfAny: trimmed });
+        setExtractState({ status: "idle" });
+        return;
+      }
+
+      const msg =
+        body?.message ??
+        "Could not extract product details from this URL. Try uploading a photo instead.";
+      setExtractState({ status: "error", message: msg });
     } catch {
       setExtractState({
         status: "error",
@@ -162,7 +162,15 @@ export function UrlPane({
         </p>
       ) : (
         <p className="text-caption">
-          We'll extract product details automatically.
+          We'll extract product details automatically.{" "}
+          <button
+            type="button"
+            className="underline-offset-2 hover:underline text-foreground"
+            onClick={() => onRequestManualEntry?.({ source: "user" })}
+          >
+            Enter details manually
+          </button>
+          .
         </p>
       )}
     </form>

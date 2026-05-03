@@ -3,6 +3,10 @@
 import { useEffect, useState } from "react";
 
 import { InputForm, type InputValue } from "@/components/generate/input-form";
+import {
+  ManualEntryDialog,
+  type ManualEntryHint,
+} from "@/components/generate/manual-entry-dialog";
 import type { ExtractResponse } from "@/lib/schemas/generation";
 import { TEMPLATES } from "@/lib/templates/registry";
 
@@ -13,6 +17,8 @@ export function DashboardShell() {
   const [inputValue, setInputValue] = useState<InputValue>({ type: "empty" });
   const [extractedProduct, setExtractedProduct] =
     useState<ExtractResponse | null>(null);
+  const [manualOpen, setManualOpen] = useState(false);
+  const [manualHint, setManualHint] = useState<ManualEntryHint | null>(null);
 
   // Mirror file uploads into extractedProduct — symmetric with the URL flow.
   // When type === "url", the UrlPane's onProductExtracted callback handles it.
@@ -41,9 +47,18 @@ export function DashboardShell() {
           const product = (await res.json()) as ExtractResponse;
           setExtractedProduct(product);
         } else {
-          // Photo extraction backend wires in Phase C. Until then we keep
-          // the file-stage placeholder visible so the user sees the upload
-          // succeeded.
+          const body = (await res.json().catch(() => null)) as {
+            error?: string;
+          } | null;
+          if (body?.error === "vision_failed") {
+            setManualHint({
+              source: "photo",
+              imageUrlIfAny: inputValue.publicUrl,
+            });
+            setManualOpen(true);
+          }
+          // Keep the file-stage placeholder visible regardless — better UX
+          // than blanking the preview.
           setExtractedProduct({
             productName: inputValue.file.name.replace(/\.[^.]+$/, ""),
             productDesc: `Uploaded · ${(inputValue.file.size / 1024).toFixed(0)} KB`,
@@ -75,6 +90,10 @@ export function DashboardShell() {
               setInputValue(v);
             }}
             onProductExtracted={setExtractedProduct}
+            onRequestManualEntry={(hint) => {
+              setManualHint(hint);
+              setManualOpen(true);
+            }}
           />
         </Step>
 
@@ -107,6 +126,16 @@ export function DashboardShell() {
           />
         </div>
       </div>
+
+      <ManualEntryDialog
+        open={manualOpen}
+        hint={manualHint}
+        onOpenChange={(open) => {
+          setManualOpen(open);
+          if (!open) setManualHint(null);
+        }}
+        onSubmit={(product) => setExtractedProduct(product)}
+      />
     </div>
   );
 }
