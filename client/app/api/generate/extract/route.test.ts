@@ -20,6 +20,26 @@ vi.mock("@/lib/supabase/server", () => ({
   }),
 }));
 
+vi.mock("@/lib/r2/client", () => ({
+  publicUrl: (k: string) => `https://assets.adcreator.in/${k}`,
+  isR2Configured: () => false,
+  uploadToR2: vi.fn(),
+  presignPut: vi.fn(),
+}));
+
+const { describeMock } = vi.hoisted(() => ({ describeMock: vi.fn() }));
+class MockVisionError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "VisionError";
+  }
+}
+
+vi.mock("@/lib/groq/vision", () => ({
+  describeProductImage: describeMock,
+  VisionError: MockVisionError,
+}));
+
 import { POST } from "./route";
 
 const ORIG_FETCH = global.fetch;
@@ -90,13 +110,39 @@ describe("POST /api/generate/extract", () => {
     expect(json.error).toBe("invalid_url");
   });
 
-  it("photo path still returns 501", async () => {
+  it("photo path: returns vision-described product on success", async () => {
+    describeMock.mockResolvedValueOnce({
+      name: "Festival Saree",
+      description: "Hand-woven cotton saree",
+      category: "fashion",
+    });
     const res = await POST(
       reqJson({
         inputType: "photo",
-        imageKey: "uploads/test.jpg",
+        imageKey: "uploads/u1/x.png",
       }) as never,
     );
-    expect(res.status).toBe(501);
+    expect(res.status).toBe(200);
+    const json = await res.json();
+    expect(json.productName).toBe("Festival Saree");
+    expect(json.category).toBe("fashion");
+    expect(json.productImageUrl).toBe(
+      "https://assets.adcreator.in/uploads/u1/x.png",
+    );
+  });
+
+  it("photo path: maps VisionError to 422 vision_failed", async () => {
+    describeMock.mockRejectedValueOnce(
+      new MockVisionError("vision_failed_after_3_attempts:json_parse"),
+    );
+    const res = await POST(
+      reqJson({
+        inputType: "photo",
+        imageKey: "uploads/u1/x.png",
+      }) as never,
+    );
+    expect(res.status).toBe(422);
+    const json = await res.json();
+    expect(json.error).toBe("vision_failed");
   });
 });

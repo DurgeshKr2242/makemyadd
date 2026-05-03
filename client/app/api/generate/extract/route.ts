@@ -65,9 +65,39 @@ export async function POST(request: NextRequest) {
     }
   }
 
-  // photo branch — needs Groq Vision (TODO §6.2)
-  return NextResponse.json(
-    { error: "not_implemented", spec: "§6.2" },
-    { status: 501 },
-  );
+  // photo branch — Groq Vision describes the uploaded image.
+  try {
+    const { publicUrl } = await import("@/lib/r2/client");
+    const { describeProductImage, VisionError } = await import(
+      "@/lib/groq/vision"
+    );
+    const imageUrl = publicUrl(parsed.imageKey, "uploads");
+    try {
+      const v = await describeProductImage(imageUrl);
+      return NextResponse.json({
+        productName: v.name,
+        productDesc: v.description,
+        productImageUrl: imageUrl,
+        ...(v.category ? { category: v.category } : {}),
+      });
+    } catch (err) {
+      if (err instanceof VisionError) {
+        return NextResponse.json(
+          { error: "vision_failed", message: err.message },
+          { status: 422 },
+        );
+      }
+      throw err;
+    }
+  } catch (err) {
+    // The lazy imports themselves throw if the relevant env keys are absent
+    // — surface that cleanly so the UI can fall back to manual entry.
+    return NextResponse.json(
+      {
+        error: "service_unavailable",
+        message: err instanceof Error ? err.message : "service unavailable",
+      },
+      { status: 503 },
+    );
+  }
 }
