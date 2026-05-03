@@ -94,3 +94,10 @@ export const CopyResponseSchema = z.object({
 export type CopyResponse = z.infer<typeof CopyResponseSchema>;
 
 export const InputTypeSchema = z.enum(INPUT_TYPES);
+
+export const ManualEntrySchema = z.object({
+  productName: z.string().min(1, "Required").max(200, "Keep it short"),
+  productDesc: z.string().min(1, "Required").max(500, "Keep it short"),
+  category: z.enum(CATEGORIES).optional(),
+});
+export type ManualEntryInput = z.infer<typeof ManualEntrySchema>;
