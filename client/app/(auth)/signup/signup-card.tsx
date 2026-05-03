@@ -1,20 +1,76 @@
 "use client";
 
+import { zodResolver } from "@hookform/resolvers/zod";
+import { Loader2 } from "lucide-react";
 import { motion, useReducedMotion } from "motion/react";
 import Link from "next/link";
-import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { useState, useTransition } from "react";
+import { useForm } from "react-hook-form";
+import { toast } from "sonner";
 
+import { PasswordStrength } from "@/components/auth/password-strength";
 import { TurnstileGate } from "@/components/auth/turnstile-gate";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { signUpAction } from "@/lib/auth/actions";
 import { fadeUpHero } from "@/lib/motion/entrance";
+import { type SignUpInput, signUpSchema } from "@/lib/schemas/auth";
 
 export function SignupCard() {
   const reducedMotion = useReducedMotion();
-  // TODO §13 — pass _turnstileToken to the Supabase auth submit handler once wired.
-  // Prefixed with _ because the read side is intentional infrastructure (collected but not yet consumed).
-  const [_turnstileToken, setTurnstileToken] = useState<string | null>(null);
+  const router = useRouter();
+  const [pending, startTransition] = useTransition();
+  const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
+
+  const {
+    register,
+    handleSubmit,
+    setError,
+    setValue,
+    watch,
+    formState: { errors },
+  } = useForm<SignUpInput>({
+    resolver: zodResolver(signUpSchema),
+    defaultValues: {
+      email: "",
+      fullName: "",
+      password: "",
+      turnstileToken: "",
+    },
+  });
+  const password = watch("password");
+
+  const onSubmit = (values: SignUpInput) => {
+    if (!turnstileToken) {
+      setError("turnstileToken", { message: "Please complete the captcha" });
+      return;
+    }
+    startTransition(async () => {
+      const fd = new FormData();
+      fd.set("fullName", values.fullName);
+      fd.set("email", values.email);
+      fd.set("password", values.password);
+      fd.set("turnstileToken", turnstileToken);
+      const result = await signUpAction(fd);
+      if (result.ok) {
+        toast.success("Welcome — let's create your first ad");
+        router.replace("/dashboard");
+        router.refresh();
+        return;
+      }
+      if (
+        result.field === "email" ||
+        result.field === "password" ||
+        result.field === "fullName"
+      ) {
+        setError(result.field, { message: result.error });
+        return;
+      }
+      toast.error(result.error);
+    });
+  };
 
   return (
     <motion.div
@@ -33,21 +89,21 @@ export function SignupCard() {
         </p>
       </div>
 
-      <Button variant="outline" className="w-full" disabled>
-        Continue with Google
-      </Button>
-
-      <div className="relative my-6">
-        <div className="hairline" />
-        <span className="absolute left-1/2 -translate-x-1/2 -top-2.5 bg-card px-3 text-caption">
-          or
-        </span>
-      </div>
-
-      <form className="space-y-4">
+      <form className="space-y-4" onSubmit={handleSubmit(onSubmit)} noValidate>
         <div className="space-y-1.5">
-          <Label htmlFor="name">Your name</Label>
-          <Input id="name" autoComplete="name" placeholder="Sundar Devi" />
+          <Label htmlFor="fullName">Your name</Label>
+          <Input
+            id="fullName"
+            autoComplete="name"
+            placeholder="Sundar Devi"
+            aria-invalid={Boolean(errors.fullName)}
+            {...register("fullName")}
+          />
+          {errors.fullName ? (
+            <p className="text-caption text-destructive mt-1">
+              {errors.fullName.message}
+            </p>
+          ) : null}
         </div>
         <div className="space-y-1.5">
           <Label htmlFor="email">Email</Label>
@@ -56,7 +112,14 @@ export function SignupCard() {
             type="email"
             autoComplete="email"
             placeholder="you@brand.in"
+            aria-invalid={Boolean(errors.email)}
+            {...register("email")}
           />
+          {errors.email ? (
+            <p className="text-caption text-destructive mt-1">
+              {errors.email.message}
+            </p>
+          ) : null}
         </div>
         <div className="space-y-1.5">
           <Label htmlFor="password">Password</Label>
@@ -65,13 +128,38 @@ export function SignupCard() {
             type="password"
             autoComplete="new-password"
             placeholder="At least 8 characters"
+            aria-invalid={Boolean(errors.password)}
+            {...register("password")}
           />
+          <PasswordStrength password={password ?? ""} />
+          {errors.password ? (
+            <p className="text-caption text-destructive mt-1">
+              {errors.password.message}
+            </p>
+          ) : null}
         </div>
 
-        <TurnstileGate onVerified={setTurnstileToken} />
+        <TurnstileGate
+          onVerified={(t) => {
+            setTurnstileToken(t);
+            setValue("turnstileToken", t ?? "", { shouldValidate: false });
+          }}
+        />
+        {errors.turnstileToken ? (
+          <p className="text-caption text-destructive">
+            {errors.turnstileToken.message}
+          </p>
+        ) : null}
 
-        <Button type="submit" className="w-full" disabled>
-          Create account
+        <Button type="submit" className="w-full" disabled={pending}>
+          {pending ? (
+            <>
+              <Loader2 className="h-4 w-4 animate-spin" />
+              Creating account…
+            </>
+          ) : (
+            "Create account"
+          )}
         </Button>
 
         <p className="text-caption">
