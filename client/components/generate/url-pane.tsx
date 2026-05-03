@@ -2,7 +2,10 @@
 
 import { Globe, X } from "lucide-react";
 import { useState } from "react";
-import type { InputValue } from "@/components/generate/input-form";
+import type {
+  InputValue,
+  ManualEntryHint,
+} from "@/components/generate/input-form";
 import { isAcceptableProductUrl } from "@/components/generate/input-form";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,6 +15,10 @@ export interface UrlPaneProps {
   value: InputValue;
   onChange: (v: InputValue) => void;
   onProductExtracted?: (product: ExtractResponse) => void;
+  /** Set in Task 13 — opens the manual-entry dialog when scrape returns
+   *  a fallback-eligible error code. Optional so this component compiles
+   *  ahead of the dashboard wiring. */
+  onRequestManualEntry?: (hint: ManualEntryHint) => void;
 }
 
 type ExtractState =
@@ -19,7 +26,12 @@ type ExtractState =
   | { status: "loading" }
   | { status: "error"; message: string };
 
-export function UrlPane({ value, onChange, onProductExtracted }: UrlPaneProps) {
+export function UrlPane({
+  value,
+  onChange,
+  onProductExtracted,
+  onRequestManualEntry: _onRequestManualEntry,
+}: UrlPaneProps) {
   const [draft, setDraft] = useState(value.type === "url" ? value.url : "");
   const [error, setError] = useState<string | null>(null);
   const [extractState, setExtractState] = useState<ExtractState>({

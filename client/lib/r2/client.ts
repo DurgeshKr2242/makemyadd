@@ -7,9 +7,11 @@
  */
 import "server-only";
 
+import type { S3Client } from "@aws-sdk/client-s3";
+
 import { requireServerEnv, serverEnv } from "@/lib/env.server";
 
-let cachedClient: unknown = null;
+let cachedClient: S3Client | null = null;
 
 export const R2_BUCKETS = {
   uploads: serverEnv.R2_BUCKET_UPLOADS,
@@ -27,18 +29,18 @@ export function isR2Configured(): boolean {
   );
 }
 
-async function getR2Client() {
+async function getR2Client(): Promise<S3Client> {
   if (cachedClient) return cachedClient;
   const accountId = requireServerEnv("CLOUDFLARE_ACCOUNT_ID");
   const accessKeyId = requireServerEnv("R2_ACCESS_KEY_ID");
   const secretAccessKey = requireServerEnv("R2_SECRET_ACCESS_KEY");
-  const { S3Client } = await import("@aws-sdk/client-s3");
-  cachedClient = new S3Client({
+  const { S3Client: S3ClientCtor } = await import("@aws-sdk/client-s3");
+  cachedClient = new S3ClientCtor({
     region: "auto",
     endpoint: `https://${accountId}.r2.cloudflarestorage.com`,
     credentials: { accessKeyId, secretAccessKey },
   });
-  return cachedClient as InstanceType<typeof S3Client>;
+  return cachedClient;
 }
 
 /** Construct the public CDN URL for an object key. All three buckets are

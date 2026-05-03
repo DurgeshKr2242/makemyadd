@@ -18,11 +18,42 @@ export function DashboardShell() {
   // When type === "url", the UrlPane's onProductExtracted callback handles it.
   useEffect(() => {
     if (inputValue.type === "file") {
+      // Local-preview-only state, before R2 upload completes.
       setExtractedProduct({
         productName: inputValue.file.name.replace(/\.[^.]+$/, ""),
         productDesc: `${(inputValue.file.size / 1024).toFixed(0)} KB · ${inputValue.file.type}`,
         productImageUrl: inputValue.previewUrl,
       });
+    } else if (inputValue.type === "uploaded") {
+      // Upload finished — fire photo extraction.
+      let cancelled = false;
+      (async () => {
+        const res = await fetch("/api/generate/extract", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            inputType: "photo",
+            imageKey: inputValue.key,
+          }),
+        });
+        if (cancelled) return;
+        if (res.ok) {
+          const product = (await res.json()) as ExtractResponse;
+          setExtractedProduct(product);
+        } else {
+          // Photo extraction backend wires in Phase C. Until then we keep
+          // the file-stage placeholder visible so the user sees the upload
+          // succeeded.
+          setExtractedProduct({
+            productName: inputValue.file.name.replace(/\.[^.]+$/, ""),
+            productDesc: `Uploaded · ${(inputValue.file.size / 1024).toFixed(0)} KB`,
+            productImageUrl: inputValue.publicUrl,
+          });
+        }
+      })();
+      return () => {
+        cancelled = true;
+      };
     } else if (inputValue.type === "empty") {
       setExtractedProduct(null);
     }
