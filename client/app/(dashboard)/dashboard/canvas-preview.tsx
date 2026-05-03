@@ -1,127 +1,66 @@
 // client/app/(dashboard)/dashboard/canvas-preview.tsx
 "use client";
 
+import { Download, Loader2, RotateCcw } from "lucide-react";
 import { motion, useReducedMotion } from "motion/react";
-import { useRef, useState } from "react";
+import { useRef } from "react";
 import { toast } from "sonner";
-import { PlanModal } from "@/components/billing/plan-modal";
+
 import {
   FabricCanvas,
   type FabricCanvasHandle,
 } from "@/components/canvas/FabricCanvas";
-import { TemplateSelector } from "@/components/canvas/TemplateSelector";
-import { CopyVariants } from "@/components/generate/copy-variants";
-import { LanguagePicker } from "@/components/generate/language-picker";
+import type { CopyVariant } from "@/components/generate/copy-variants";
+import type { ProgressStep } from "@/components/generate/progress-stepper";
 import { ProgressStepper } from "@/components/generate/progress-stepper";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { useMockGeneration } from "@/lib/generate/use-mock-generation";
-import { useShortcuts } from "@/lib/hooks/use-shortcuts";
-import { fadeUp, fadeUpHero, staggerChildren } from "@/lib/motion/entrance";
-import type { ExtractResponse } from "@/lib/schemas/generation";
-import { useGenerationStore } from "@/lib/state/generation";
-import type { TemplateConfig } from "@/lib/templates/types";
-import type { Language, Tone } from "@/lib/types";
-
-const DEFAULT_COPY: Record<
-  Language,
-  { headline: string; subheadline: string; cta: string }
-> = {
-  en: {
-    headline: "Festival Sale",
-    subheadline: "Limited time · Free delivery",
-    cta: "Shop Now",
-  },
-  hi: {
-    headline: "त्योहारी सेल",
-    subheadline: "सीमित समय · फ्री डिलीवरी",
-    cta: "अभी खरीदें",
-  },
-  ta: {
-    headline: "திருவிழா சலுகை",
-    subheadline: "வரம்பிலான நேரம் · இலவச டெலிவரி",
-    cta: "இன்றே வாங்கு",
-  },
-  te: {
-    headline: "పండుగ సేల్",
-    subheadline: "పరిమిత సమయం · ఉచిత డెలివరీ",
-    cta: "ఇప్పుడే కొనండి",
-  },
-};
-
-const SAMPLE_IMAGE =
-  "data:image/svg+xml;utf8," +
-  encodeURIComponent(
-    `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 400 400'><defs><linearGradient id='g' x1='0' y1='0' x2='1' y2='1'><stop offset='0%25' stop-color='%23ffffff'/><stop offset='100%25' stop-color='%23a1a1aa'/></linearGradient></defs><rect width='400' height='400' rx='32' fill='url(%23g)'/><text x='50%25' y='52%25' text-anchor='middle' font-family='sans-serif' font-size='28' fill='%23111'>Sample product</text></svg>`,
-  );
-
-const FREE_TIER_LIMIT = 5;
+import type { Palette, TemplateConfig } from "@/lib/templates/types";
+import type { Language } from "@/lib/types";
+import { cn } from "@/lib/utils";
 
 export interface CanvasPreviewProps {
-  templates: readonly TemplateConfig[];
-  defaultTemplateId: string;
-  extractedProduct?: ExtractResponse | null;
+  template: TemplateConfig;
+  productImageUrl: string;
+  copy: { headline: string; subheadline: string; cta: string };
+  language: Language;
+  paletteOverride: Palette;
+  watermark: boolean;
+
+  // Copy variants — null until first run completes.
+  variants: readonly CopyVariant[];
+  selectedVariantIndex: number;
+  onSelectVariant: (i: number) => void;
+
+  // Generation status — drives the overlay.
+  generationRunning: boolean;
+  generationComplete: boolean;
+  steps: ProgressStep[];
+
+  onReset: () => void;
 }
 
 export function CanvasPreview({
-  templates,
-  defaultTemplateId,
-  extractedProduct = null,
+  template,
+  productImageUrl,
+  copy,
+  language,
+  paletteOverride,
+  watermark,
+  variants,
+  selectedVariantIndex,
+  onSelectVariant,
+  generationRunning,
+  generationComplete,
+  steps,
+  onReset,
 }: CanvasPreviewProps) {
-  const [tplId, setTplId] = useState(defaultTemplateId);
-  const [language, setLanguage] = useState<Language>("hi");
-  const [tone, setTone] = useState<Tone>("festive");
-  const [selectedVariantIndex, setSelectedVariantIndex] = useState(0);
-
-  // Mock quota tracking — replaced by real quota from lib/quota.ts in §8.
-  const [mockQuotaUsed, setMockQuotaUsed] = useState(0);
-  const [planModalOpen, setPlanModalOpen] = useState(false);
-
-  // Plan from Zustand store — controls watermark visibility.
-  const plan = useGenerationStore((s) => s.plan);
-  const setPlan = useGenerationStore((s) => s.setPlan);
-
-  // Ref to the canvas — used to trigger the real PNG download.
   const canvasRef = useRef<FabricCanvasHandle>(null);
-
-  const { status, steps, variants, start, reset } = useMockGeneration(language);
-
-  const tpl = templates.find((t) => t.id === tplId) ?? templates[0];
-
-  const activeCopy =
-    variants.length === 3
-      ? (variants[selectedVariantIndex] ?? DEFAULT_COPY[language])
-      : extractedProduct
-        ? {
-            headline: extractedProduct.productName,
-            subheadline:
-              extractedProduct.productDesc.slice(0, 120) ||
-              "Tap Generate to write copy",
-            cta: "Coming soon",
-          }
-        : DEFAULT_COPY[language];
-
-  const activeImageUrl = extractedProduct?.productImageUrl ?? SAMPLE_IMAGE;
-
-  const isRunning = status === "running";
-  const isComplete = status === "complete";
-  const isQuotaExhausted = mockQuotaUsed >= FREE_TIER_LIMIT;
-
-  // Wrapped start — increments quota counter when a generation completes.
-  const handleStart = () => {
-    if (isQuotaExhausted) {
-      setPlanModalOpen(true);
-      return;
-    }
-    start();
-    // Increment after triggering so we don't block the first run.
-    // The real counter will live server-side; this is a UI mock.
-    setMockQuotaUsed((n) => n + 1);
-  };
+  const reducedMotion = useReducedMotion();
 
   const handleDownload = () => {
     const ts = new Date().toISOString().slice(0, 19).replace(/[:T]/g, "-");
-    const slug = (extractedProduct?.productName ?? "ad")
+    const slug = (copy.headline || template.name)
       .toLowerCase()
       .replace(/[^a-z0-9]+/g, "-")
       .replace(/^-|-$/g, "")
@@ -130,7 +69,7 @@ export function CanvasPreview({
     const ok = canvasRef.current?.download(filename) ?? false;
     if (ok) {
       toast.success("Downloaded", {
-        description: `${filename}.png saved to your downloads folder.`,
+        description: `${filename}.png saved.`,
       });
     } else {
       toast.error("Download failed", {
@@ -139,218 +78,120 @@ export function CanvasPreview({
     }
   };
 
-  // Power-user keyboard shortcuts
-  useShortcuts([
-    {
-      keys: "d",
-      description: "Download current canvas",
-      handler: handleDownload,
-    },
-    {
-      keys: "g",
-      description: "Generate copy",
-      handler: () => {
-        if (!isRunning && !isComplete) handleStart();
-      },
-    },
-    {
-      keys: ["1", "2", "3"],
-      description: "Switch to copy variant 1 / 2 / 3",
-      handler: (e) => {
-        if (variants.length !== 3) return;
-        const idx = Number.parseInt(e.key, 10) - 1;
-        if (idx >= 0 && idx <= 2) setSelectedVariantIndex(idx);
-      },
-    },
-  ]);
-
-  const reducedMotion = useReducedMotion();
+  // Display width of the canvas — Indic-friendly: square gets the largest
+  // breathing room; story/portrait scale down to fit the column.
+  const displayWidth =
+    template.format === "9x16" ? 320 : template.format === "4x5" ? 380 : 480;
 
   return (
-    <>
-      <motion.div
-        className="space-y-5"
-        initial={reducedMotion ? false : "hidden"}
-        animate="show"
-        variants={staggerChildren()}
-      >
-        {/* Language & tone picker */}
-        <motion.div variants={fadeUp}>
-          <LanguagePicker
-            language={language}
-            onLanguageChange={(lang) => {
-              setLanguage(lang);
-              reset();
-            }}
-            tone={tone}
-            onToneChange={setTone}
-          />
-        </motion.div>
-
-        {/* Progress stepper — visible while running */}
-        {isRunning && (
-          <div className="bg-card border border-border rounded-2xl px-5 py-4">
-            <p className="text-label mb-4">Generating</p>
-            <ProgressStepper steps={steps} />
-          </div>
-        )}
-
-        {/* Extracted product badge */}
-        {extractedProduct ? (
-          <div className="mb-3 inline-flex items-center gap-2 px-3 py-1 rounded-full bg-success/10 text-success text-mono">
-            <span className="inline-flex h-1.5 w-1.5 rounded-full bg-success" />
-            {extractedProduct.productName}
+    <div className="bg-card border border-border rounded-2xl overflow-hidden flex flex-col">
+      {/* Toolbar — variant tabs, format pill, watermark */}
+      <div className="flex items-center justify-between gap-3 px-5 py-3 border-b border-border">
+        <div className="flex items-center gap-2 min-w-0">
+          <span className="text-label">Live preview</span>
+          {watermark ? (
+            <Badge
+              variant="outline"
+              className="bg-warning/10 text-warning font-mono uppercase text-[10px] tracking-wider"
+            >
+              Watermark
+            </Badge>
+          ) : null}
+        </div>
+        {variants.length > 0 ? (
+          <div
+            role="tablist"
+            aria-label="Copy variants"
+            className="inline-flex items-center gap-1 bg-background border border-border rounded-md p-0.5"
+          >
+            {variants.map((v, i) => {
+              const active = i === selectedVariantIndex;
+              return (
+                <button
+                  key={v.headline}
+                  type="button"
+                  role="tab"
+                  aria-selected={active}
+                  onClick={() => onSelectVariant(i)}
+                  className={cn(
+                    "h-6 min-w-[36px] px-2 rounded text-mono tabular text-[11px] transition-colors duration-fast focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:ring-offset-background",
+                    active
+                      ? "bg-primary text-primary-foreground"
+                      : "text-muted-foreground hover:text-foreground hover:bg-accent",
+                  )}
+                >
+                  V{i + 1}
+                </button>
+              );
+            })}
           </div>
         ) : null}
+      </div>
 
-        {/* Canvas card */}
+      {/* Canvas stage — gradient backdrop, breathing room */}
+      <div className="relative flex-1 flex items-center justify-center px-6 py-10 sm:py-14 gradient-spotlight">
         <motion.div
-          className="spotlight-card relative bg-card border border-border rounded-3xl p-6 sm:p-8 shadow-lg"
-          variants={fadeUpHero}
+          initial={reducedMotion ? false : { opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{
+            duration: 0.32,
+            ease: [0.16, 1, 0.3, 1],
+          }}
+          className="relative"
         >
-          <div className="flex items-center justify-between mb-6">
-            <p className="text-label">Live preview</p>
-            <div className="flex items-center gap-2">
-              {plan === "free" && (
-                <Badge
-                  variant="outline"
-                  className="bg-warning/10 text-warning font-mono uppercase text-[10px] tracking-wider"
-                >
-                  Watermark
-                </Badge>
-              )}
-              <Badge
-                variant="outline"
-                className="font-mono uppercase text-[10px] tracking-wider"
-              >
-                {tpl?.format} · {tpl?.canvas.width}
-              </Badge>
-            </div>
-          </div>
-
-          <div className="flex justify-center">
-            {tpl ? (
-              <FabricCanvas
-                ref={canvasRef}
-                template={tpl}
-                productImageUrl={activeImageUrl}
-                copy={activeCopy}
-                language={language}
-                watermark={plan === "free"}
-                displayWidth={420}
-              />
-            ) : null}
-          </div>
-
-          <div className="mt-6 flex items-center justify-between gap-2">
-            <Button variant="outline" onClick={handleDownload}>
-              Download
-            </Button>
-            {isComplete ? (
-              <Button
-                variant="secondary"
-                onClick={() => {
-                  reset();
-                }}
-              >
-                Generate again
-              </Button>
-            ) : isQuotaExhausted ? (
-              <Button
-                onClick={() => setPlanModalOpen(true)}
-                disabled={isRunning}
-              >
-                Upgrade to keep generating
-              </Button>
-            ) : (
-              <Button
-                onClick={handleStart}
-                disabled={isRunning}
-                aria-busy={isRunning}
-              >
-                {isRunning ? "Generating…" : "Generate copy"}
-              </Button>
-            )}
-          </div>
-
-          {/* Mock quota indicator */}
-          {mockQuotaUsed > 0 && !isQuotaExhausted && (
-            <p className="text-caption text-center mt-3">
-              {mockQuotaUsed} of {FREE_TIER_LIMIT} free generations used
-            </p>
-          )}
-
-          {/* Keyboard shortcut hint — desktop only */}
-          <div className="hidden lg:flex items-center gap-3 mt-4 pt-4 border-t border-border/50 text-muted-foreground">
-            <span className="text-[10px] tracking-wider uppercase font-mono">
-              Shortcuts
-            </span>
-            <span className="flex items-center gap-1 text-[11px]">
-              <kbd className="bg-muted text-mono px-1.5 py-0.5 rounded text-[10px] tracking-wider">
-                D
-              </kbd>
-              Download
-            </span>
-            <span className="text-border">·</span>
-            <span className="flex items-center gap-1 text-[11px]">
-              <kbd className="bg-muted text-mono px-1.5 py-0.5 rounded text-[10px] tracking-wider">
-                G
-              </kbd>
-              Generate
-            </span>
-            <span className="text-border">·</span>
-            <span className="flex items-center gap-1 text-[11px]">
-              <kbd className="bg-muted text-mono px-1.5 py-0.5 rounded text-[10px] tracking-wider">
-                1
-              </kbd>
-              <kbd className="bg-muted text-mono px-1.5 py-0.5 rounded text-[10px] tracking-wider">
-                2
-              </kbd>
-              <kbd className="bg-muted text-mono px-1.5 py-0.5 rounded text-[10px] tracking-wider">
-                3
-              </kbd>
-              Variants
-            </span>
-          </div>
-        </motion.div>
-
-        {/* Copy variants — visible once generation is complete */}
-        {isComplete && variants.length === 3 && (
-          <motion.div variants={fadeUp}>
-            <CopyVariants
-              variants={variants}
-              selectedIndex={selectedVariantIndex}
-              onSelect={setSelectedVariantIndex}
-              language={language}
-            />
-          </motion.div>
-        )}
-
-        {/* Template selector */}
-        <motion.div variants={fadeUp}>
-          <p className="text-label mb-3">Template</p>
-          <TemplateSelector
-            templates={templates}
-            value={tpl?.id ?? ""}
-            onChange={setTplId}
+          <FabricCanvas
+            ref={canvasRef}
+            template={template}
+            productImageUrl={productImageUrl}
+            copy={copy}
+            language={language}
+            paletteOverride={paletteOverride}
+            watermark={watermark}
+            displayWidth={displayWidth}
+            className="ring-1 ring-border rounded-md shadow-lg"
           />
-        </motion.div>
-      </motion.div>
 
-      {/* Plan upgrade modal */}
-      <PlanModal
-        open={planModalOpen}
-        onOpenChange={setPlanModalOpen}
-        recommended="starter"
-        onUpgrade={(upgradedPlan) => {
-          setPlan(upgradedPlan);
-          setPlanModalOpen(false);
-          toast.success(`Upgraded to ${upgradedPlan}`, {
-            description:
-              "Watermark removed. Generations reset to monthly limit.",
-          });
-        }}
-      />
-    </>
+          {/* Generation overlay — semi-transparent scrim with stepper */}
+          {generationRunning ? (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="absolute inset-0 flex items-end justify-center bg-background/40 backdrop-blur-sm rounded-md"
+            >
+              <div className="m-4 w-full max-w-sm bg-popover/90 backdrop-blur border border-border rounded-xl p-4 shadow-lg">
+                <div className="flex items-center justify-between mb-3">
+                  <p className="text-label">Generating</p>
+                  <Loader2
+                    className="h-3.5 w-3.5 animate-spin text-primary"
+                    strokeWidth={2.5}
+                  />
+                </div>
+                <ProgressStepper steps={steps} />
+              </div>
+            </motion.div>
+          ) : null}
+        </motion.div>
+      </div>
+
+      {/* Action row — download primary, reset secondary, copy hint */}
+      <div className="flex items-center justify-between gap-3 px-5 py-3 border-t border-border bg-background/40">
+        <div className="flex items-center gap-2 min-w-0">
+          {generationComplete ? (
+            <Button variant="ghost" size="sm" onClick={onReset}>
+              <RotateCcw className="h-3.5 w-3.5" strokeWidth={1.75} />
+              Regenerate
+            </Button>
+          ) : (
+            <span className="text-caption hidden sm:inline">
+              Pick a template, then generate copy
+            </span>
+          )}
+        </div>
+        <Button onClick={handleDownload} size="sm" variant="secondary">
+          <Download className="h-3.5 w-3.5" strokeWidth={1.75} />
+          Download .png
+        </Button>
+      </div>
+    </div>
   );
 }
