@@ -740,8 +740,8 @@ For each route: define request/response Zod schemas in `lib/schemas/*.ts`, share
 - [ ] `/settings` — profile (full name, avatar), email, password reset, delete account.
 
 ### 15.4 System / utility
-- [ ] `/404` custom Not Found.
-- [ ] `/500` custom error boundary.
+- [x] `/404` custom Not Found — `app/not-found.tsx`.
+- [x] `/500` custom error boundary — per-route-group `(marketing|auth|dashboard)/error.tsx` + root `app/global-error.tsx` for root-layout crashes (`914e2d3`).
 - [x] `/offline` fallback shipped alongside the PWA service worker — see Recent additions.
 
 ### 15.5 Modals
@@ -754,7 +754,7 @@ For each route: define request/response Zod schemas in `lib/schemas/*.ts`, share
 - [ ] History empty: "No generations yet — make your first ad."
 - [ ] Templates empty: should never happen (we seed); show "Loading templates" spinner only.
 - [ ] Billing while no subscription: show plan picker.
-- [ ] Generic error boundary on every page (Sentry-wrapped).
+- [x] Generic error boundary on every page (Sentry-wrapped) — per-route-group `error.tsx` + root `global-error.tsx`. Each tags Sentry with `boundary: <name>` for triage.
 
 ---
 
@@ -1019,3 +1019,5 @@ Add `lib/env.ts` that runs Zod validation on startup so a missing var crashes th
 - [x] **JSON-LD structured data on public pages** — `lib/seo/json-ld.tsx` exports typed builders (WebSite + Organization + Product + BreadcrumbList + ItemList of CreativeWork) and a `<JsonLd>` server component. Wired into `/`, `/pricing`, `/templates`. 5 vitest cases for the builders + 2 Playwright specs assert the script tags mount on the rendered HTML. Landed `da1f26e`.
 - [x] **Per-language Open Graph variants** — `lib/og/render.tsx` shared `renderOg(language)` ImageResponse helper using per-language Noto woff2 fetched from gstatic at edge runtime so Indic glyphs actually render. Three new edge routes at `app/og/{hi,ta,te}/route.tsx`; root `opengraph-image.tsx` refactored to use the helper. Layout metadata enumerates all four images + `alternateLocale: ["hi_IN", "ta_IN", "te_IN"]`. 1 Playwright spec confirms `/og/hi` returns a 200 PNG. Landed `3341ff4`.
 - [x] **PWA service worker + offline shell** — hand-written `public/sw.js` (no Serwist — needs webpack which is risky on canary). Cache-versioned: static `/_next/*` cache-first, fonts cache-first, HTML navigations network-first with `/offline` fallback, `/api/*` + `/auth/*` never cached. `components/pwa/sw-register.tsx` registers in production only on the `load` event. `components/pwa/install-prompt.tsx` captures Chrome's `beforeinstallprompt` + shows iOS Safari "Tap Share → Add to Home Screen" hint. `app/offline/page.tsx` renders the offline fallback. `next.config.ts` serves `/sw.js` with `Cache-Control: no-cache`, `Service-Worker-Allowed: /`. 3 vitest cases for the iOS/Chrome branch logic + 2 Playwright specs (sw.js headers + /offline page render). Landed `0983ed8`.
+- [x] **Per-page metadata refinement** — `alternates.canonical` on `/`, `/pricing`, `/templates` so search engines collapse `?utm_=` + trailing-slash duplicates. Twitter `summary_large_image` card at root + per-page overrides on pricing/templates. `formatDetection: { telephone, date, email, address: false }` so iOS Safari stops auto-linking copy fragments like "30s" into bogus date prompts. Landing page uses `title.absolute` to bypass the `%s · AdCreator` template. Landed `e05adf6`.
+- [x] **`app/global-error.tsx` for root-layout crashes** — catches the case where the root layout itself explodes (provider init failures, font loader throws — anything above the per-route-group `error.tsx` boundaries we already had in `(marketing)`, `(auth)`, `(dashboard)`). Inline styles only — globals.css may not have loaded if we got here. React 19 `<title>` instead of metadata exports (not supported in `global-error` per Next 16 docs). Uses `unstable_retry` (Next 16) instead of the deprecated `reset` callback. Sentry-tagged `boundary: "global"`. Landed `914e2d3`.
