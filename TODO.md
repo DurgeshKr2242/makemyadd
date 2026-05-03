@@ -341,10 +341,10 @@ Going forward, every schema change is: `pnpm supabase migration new <name>` → 
 ## 4. Cloudflare R2
 
 ### 4.1 Buckets
-- [ ] `adcreator-uploads` — raw user uploads. **Private**. PUT via presigned URL only.
-- [ ] `adcreator-processed` — BG-removed transparent PNGs. **Private**. Read via presigned GET URL OR served via the public CDN domain (decide: spec uses `https://assets.adcreator.in/...` which implies public read via custom domain).
-- [ ] `adcreator-public` — template previews, watermark assets, branding. **Public read** via Cloudflare CDN.
-- [ ] Decision: For MVP, route `adcreator-processed` through the same public CDN domain because the URLs are unguessable (`bgr-{uuid}.png`); document this risk in security notes.
+- [x] `adcreator-uploads` — raw user uploads. **Private**. PUT via presigned URL only. Route uses `uploadKey(userId, ext)` keyed under `uploads/{userId}/{uuid}.{ext}`.
+- [x] `adcreator-processed` — BG-removed transparent PNGs + rehosted `og:image`. **Private**. Read via presigned GET URL OR served via the public CDN domain.
+- [ ] `adcreator-public` — template previews, watermark assets, branding. **Public read** via Cloudflare CDN. Bucket configured (`R2_BUCKET_PUBLIC`); will populate during template seed.
+- [x] Decision: For MVP, route `adcreator-processed` through the same public CDN domain because the URLs are unguessable (`bgr-{uuid}.png`); risk documented in security notes.
 
 ### 4.2 Custom domain & CDN
 - [ ] Connect `adcreator-public` (and possibly `adcreator-processed`) to custom domain `assets.adcreator.in` in R2 dashboard.
@@ -357,12 +357,9 @@ Going forward, every schema change is: `pnpm supabase migration new <name>` → 
 - [ ] Allowed headers: `*`. Expose: `ETag`. Max age: 3600.
 
 ### 4.4 R2 client (`lib/r2/client.ts`)
-- [ ] `S3Client` with `region: 'auto'`, endpoint `https://{ACCOUNT_ID}.r2.cloudflarestorage.com`.
-- [ ] Helpers: `uploadToR2(buffer, key, contentType, bucket?)`, `presignPut(key, contentType, expiresIn=300)`, `publicUrl(key)`.
-- [ ] Key conventions (`lib/r2/keys.ts`):
-  - User uploads: `uploads/{userId}/{uuid}.{ext}`
-  - Processed: `processed/bgr-{uuid}.png`
-  - Final exports (Phase 2): `exports/{userId}/{generationId}.png`
+- [x] `S3Client` with `region: 'auto'`, endpoint `https://{ACCOUNT_ID}.r2.cloudflarestorage.com`. Lazily constructed via `getR2Client()` so non-R2 routes don't pay the SDK cold-start.
+- [x] Helpers: `uploadToR2(buffer, key, contentType, bucket?)`, `presignPut(key, contentType, expiresIn=300)`, `publicUrl(key, bucket?)`, `isR2Configured()` (inert-when-no-keys gate).
+- [x] Key conventions in `lib/r2/keys.ts`: `uploads/{userId}/{uuid}.{ext}`, `processed/bgr-{uuid}.png`, `exports/{userId}/{generationId}.png`.
 
 ### 4.5 Lifecycle
 - [ ] R2 lifecycle rule: delete objects in `adcreator-uploads` after 30 days (raw uploads are not needed long-term).
@@ -373,47 +370,45 @@ Going forward, every schema change is: `pnpm supabase migration new <name>` → 
 ## 5. File Upload Pipeline
 
 ### 5.1 Presigned URL flow (`POST /api/upload/presign`)
-- [ ] Validate Supabase session — 401 if absent.
-- [ ] Validate `size <= 10 MB` (spec) and `contentType.startsWith('image/')`.
-- [ ] Validate `contentType` is in allowlist `['image/jpeg','image/png','image/webp']` — reject HEIC/AVIF (Fabric.js doesn't render reliably).
-- [ ] Generate key: `uploads/{userId}/{crypto.randomUUID()}.{ext}` — sanitise `ext` (lowercase, alphanumeric only).
-- [ ] `getSignedUrl(r2, PutObjectCommand, { expiresIn: 300 })`.
-- [ ] Return `{ presignedUrl, key, publicUrl }`.
+- [x] Validate Supabase session — 401 if absent.
+- [x] Zod-validated body, contentType allowlist (`image/jpeg|png|webp`, HEIC/AVIF rejected), 10 MB cap.
+- [x] Generate key via `uploadKey(user.id, ext)` — `uploads/{userId}/{crypto.randomUUID()}.{ext}` with sanitized ext.
+- [x] `getSignedUrl(r2, PutObjectCommand, { expiresIn: 300 })`.
+- [x] Returns `{ presignedUrl, key, publicUrl }` or 503 `r2_not_configured` when keys absent (inert pattern).
 
 ### 5.2 Client behaviour
-- [ ] Drag-and-drop zone + file picker (shadcn/ui).
-- [ ] Client-side preflight: image dimensions ≥ 400×400, ≤ 4096×4096 (warn, don't block).
-- [ ] Show progress bar during PUT; retry once on network failure.
-- [ ] On 200 from R2, kick off `POST /api/generate/extract` with the public URL.
+- [x] Drag-and-drop zone + file picker (UploadPane). Progress bar via XHR (fetch can't expose upload progress).
+- [ ] Client-side preflight: image dimensions ≥ 400×400, ≤ 4096×4096 (warn, don't block). _Pending — current preflight is type + size only._
+- [x] Show progress bar during PUT.
+- [x] On 200 from R2, automatically fires `POST /api/generate/extract` with `{inputType: photo, imageKey}`.
 
 ### 5.3 Edge cases
-- [ ] Expired presign (>5 min): client retries by re-fetching `/presign`.
-- [ ] Wrong `Content-Type` header sent on PUT: R2 rejects — surface "upload failed" error.
-- [ ] Concurrent uploads from same user: each gets its own UUID, no collision.
+- [ ] Expired presign (>5 min): client retries by re-fetching `/presign`. _Single retry on network failure already in handler; explicit re-presign on expiry not yet wired._
+- [x] Wrong `Content-Type` header sent on PUT: R2 rejects — surface "upload failed" error in the UploadPane.
+- [x] Concurrent uploads from same user: each gets its own UUID via `crypto.randomUUID()`, no collision.
 
 ---
 
 ## 6. Product Info Extraction (`POST /api/generate/extract`)
 
 ### 6.1 URL path (Cheerio)
-- [ ] Validate `inputUrl` is HTTPS, public hostname (block private IPs / metadata endpoints — 🔒 SSRF). Use `dns.lookup` + check against RFC1918, link-local, 169.254.169.254.
-- [ ] Fetch with 5 s timeout, `User-Agent: AdCreatorBot/1.0`, max body 2 MB.
-- [ ] Parse with Cheerio. Extract:
-  - `og:title`, `og:description`, `og:image`, `<title>`, `<meta name="description">`, `<h1>`, JSON-LD `Product` schema (name, description, image, price, brand).
-- [ ] Sanitise extracted strings with DOMPurify; collapse whitespace; truncate description to 500 chars.
-- [ ] If `og:image` present and reachable, fetch and re-upload to R2 (don't hotlink at render time).
+- [x] HTTPS-only + IP-literal block + DNS-resolve guard (`lib/scrape/dns-guard.ts`) — rejects hostnames whose A/AAAA records resolve to RFC1918, link-local, loopback, CGNAT, or cloud metadata. Closes the `evil.com → A 10.0.0.1` bypass.
+- [x] Fetch with 5s timeout, polite UA (`AdCreatorBot/1.0`), 2 MB streaming cap, content-type gate.
+- [x] Parse priority: **JSON-LD Product schema first** (`lib/scrape/json-ld.ts` — name/desc/image/brand/price/multi-format) → `og:*` tags → `<title>` / `<meta name="description">` / `<h1>`.
+- [x] Sanitise via `isomorphic-dompurify`; whitespace collapsed; description truncated to 500 chars; name to 200.
+- [x] `og:image` fetched + re-hosted to R2 `processed` bucket via `lib/scrape/rehost-image.ts`. Skips cleanly when R2 not configured (returns original URL).
 
 ### 6.2 Photo path
-- [ ] Use Groq Vision (`llama-3.2-90b-vision-preview` or current vision model — confirm at build time; spec says "Claude/Groq" — pick Groq to stay on one billing).
-- [ ] Prompt: "Identify the product. Return JSON `{name, description, category}`." (`category` ∈ taxonomy.)
-- [ ] Zod-validate output.
-- [ ] Fallback: open a manual entry modal (`name`, `description`, `category`) if vision fails.
+- [x] Groq Vision via `lib/groq/vision.ts`. Default model: `meta-llama/llama-4-scout-17b-16e-instruct`; override via `GROQ_VISION_MODEL` env.
+- [x] Prompt → strict JSON `{name, description, category}` with `response_format: json_object`.
+- [x] Zod-validated output via `VisionResultSchema`. 3-strike retry with temperature ramp (0.2 → 0.4 → 0.6). Throws `VisionError` after 3 strikes.
+- [x] Fallback: `<ManualEntryDialog>` opens on `vision_failed` with the upload preview as the image hint.
 
 ### 6.3 Edge cases
-- [ ] URL returns HTML with no usable metadata → fallback to manual entry modal.
-- [ ] URL returns non-HTML (PDF, JSON) → reject with "Unsupported page type".
-- [ ] URL is from a marketplace requiring login (Amazon, Flipkart auth wall) → detect `noindex` / login redirect, prompt for manual entry. 🇮🇳 Many Indian D2C sellers paste Meesho/Shopify URLs — verify those scrape cleanly during smoke tests.
-- [ ] Scrape returns adult/restricted content keywords (very basic blocklist) → reject before LLM call.
+- [x] No metadata → manual-entry dialog opens with the URL pre-filled (source: "url").
+- [x] Non-HTML content-type → 422 `fetch_failed` with descriptive message.
+- [x] Marketplace login walls — `lib/scrape/login-wall.ts` detects `noindex` + suspicious-title and login-redirect paths; surfaces 422 `login_wall` → manual-entry dialog.
+- [x] Adult/restricted keyword blocklist via `lib/scrape/blocklist.ts` → 422 `restricted_content` (toast, no manual-entry fallback — abuse mitigation).
 
 ---
 
