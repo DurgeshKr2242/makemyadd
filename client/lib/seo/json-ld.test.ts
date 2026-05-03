@@ -62,18 +62,27 @@ describe("buildTemplatesItemList", () => {
   it("maps templates to CreativeWork items", () => {
     const list = buildTemplatesItemList([
       {
-        id: "festival_bright_01_1x1",
-        name: "Festival Bright",
+        id: "spotlight_1x1",
+        name: "Spotlight",
+        description: "Test fixture",
         format: "1x1",
-        category: "sale",
-        canvas: { width: 1080, height: 1080, background: "#FF6B35" },
+        category: "showcase",
+        palette: {
+          paper: "#0F0F12",
+          ink: "#FFFFFF",
+          mute: "#A1A1AA",
+          accent: "#FF9D3D",
+          accentInk: "#1B0E04",
+          surface: "#1A1A1F",
+        },
+        canvas: { width: 1080, height: 1080, background: "@paper" },
         layers: [],
       },
     ]);
     expect(list.itemListElement).toHaveLength(1);
     const first = list.itemListElement[0];
-    expect(first?.item.name).toBe("Festival Bright");
-    expect(first?.item.url).toContain("#festival_bright_01_1x1");
-    expect(first?.item.genre).toBe("sale");
+    expect(first?.item.name).toBe("Spotlight");
+    expect(first?.item.url).toContain("#spotlight_1x1");
+    expect(first?.item.genre).toBe("showcase");
   });
 });

@@ -10,11 +10,16 @@ import {
 } from "react";
 
 import { FONT_FAMILIES } from "@/lib/fonts/families";
+import { resolveColour } from "@/lib/templates/palettes";
 import type {
   CtaButtonLayer,
+  DividerLayer,
+  GradientLayer,
   Layer,
+  Palette,
   ProductLayer,
   RectLayer,
+  ScrimLayer,
   TemplateConfig,
   TextLayer,
 } from "@/lib/templates/types";
@@ -27,6 +32,11 @@ export interface FabricCanvasProps {
   productImageUrl: string;
   copy: { headline: string; subheadline: string; cta: string };
   language: Language;
+  /** Override the template's default palette (e.g. user-selected brand
+   *  preset or a custom accent colour). */
+  paletteOverride?: Palette;
+  /** Replace the brand mark string (defaults to "AdCreator"). */
+  brandName?: string;
   watermark?: boolean;
   /** CSS class on the wrapping div */
   className?: string;
@@ -50,6 +60,8 @@ export const FabricCanvas = forwardRef<FabricCanvasHandle, FabricCanvasProps>(
       productImageUrl,
       copy,
       language,
+      paletteOverride,
+      brandName,
       watermark = false,
       className,
       displayWidth = 480,
@@ -94,6 +106,7 @@ export const FabricCanvas = forwardRef<FabricCanvasHandle, FabricCanvasProps>(
     useEffect(() => {
       let cancelled = false;
       const family = FONT_FAMILIES[language];
+      const palette = paletteOverride ?? template.palette;
 
       (async () => {
         try {
@@ -111,7 +124,7 @@ export const FabricCanvas = forwardRef<FabricCanvasHandle, FabricCanvasProps>(
             width: template.canvas.width,
             height: template.canvas.height,
             selection: false,
-            backgroundColor: template.canvas.background,
+            backgroundColor: resolveColour(template.canvas.background, palette),
             enableRetinaScaling: true,
           });
           fabricRef.current = c;
@@ -138,6 +151,8 @@ export const FabricCanvas = forwardRef<FabricCanvasHandle, FabricCanvasProps>(
               productImageUrl,
               copy,
               family.cssName,
+              palette,
+              brandName ?? "AdCreator",
             );
           }
 
@@ -173,7 +188,16 @@ export const FabricCanvas = forwardRef<FabricCanvasHandle, FabricCanvasProps>(
         fc?.dispose?.();
         fabricRef.current = null;
       };
-    }, [template, productImageUrl, copy, language, watermark, displayWidth]);
+    }, [
+      template,
+      productImageUrl,
+      copy,
+      language,
+      paletteOverride,
+      brandName,
+      watermark,
+      displayWidth,
+    ]);
 
     return (
       <div
@@ -183,11 +207,6 @@ export const FabricCanvas = forwardRef<FabricCanvasHandle, FabricCanvasProps>(
           width: displayWidth,
           aspectRatio: `${template.canvas.width} / ${template.canvas.height}`,
           position: "relative",
-          // Fabric inserts a wrapper <div class="canvas-container"> around
-          // the <canvas> with inline pixel dimensions matching the native
-          // resolution. Constraining max-width on this outer wrapper plus
-          // the cssOnly setDimensions call inside useEffect keeps everything
-          // sized to displayWidth.
           maxWidth: "100%",
           overflow: "hidden",
         }}
@@ -213,20 +232,29 @@ async function renderLayer(
   productImageUrl: string,
   copy: { headline: string; subheadline: string; cta: string },
   fontFamily: string,
+  palette: Palette,
+  brandName: string,
 ): Promise<void> {
-  // Exhaustive switch — adding a new Layer type without a branch fails
-  // at compile time on the `_exhaustive: never` line below.
   switch (layer.type) {
     case "rect":
-      renderRect(fabric, canvas, layer);
+      renderRect(fabric, canvas, layer, palette);
+      return;
+    case "gradient":
+      renderGradient(fabric, canvas, layer, palette);
+      return;
+    case "scrim":
+      renderScrim(fabric, canvas, layer, palette);
+      return;
+    case "divider":
+      renderDivider(fabric, canvas, layer, palette);
       return;
     case "product":
       return renderProduct(fabric, canvas, layer, productImageUrl);
     case "text":
-      renderText(fabric, canvas, layer, copy, fontFamily);
+      renderText(fabric, canvas, layer, copy, fontFamily, palette, brandName);
       return;
     case "cta_btn":
-      renderCtaBtn(fabric, canvas, layer);
+      renderCtaBtn(fabric, canvas, layer, copy, palette);
       return;
     case "logo":
       // Brand kit lands with §14 Phase 2 — no-op for now.
@@ -242,6 +270,7 @@ function renderRect(
   fabric: typeof import("fabric").fabric,
   canvas: import("fabric").fabric.Canvas,
   layer: RectLayer,
+  palette: Palette,
 ) {
   canvas.add(
     new fabric.Rect({
@@ -249,9 +278,97 @@ function renderRect(
       top: layer.y,
       width: layer.w,
       height: layer.h,
-      fill: layer.fill,
+      fill: resolveColour(layer.fill, palette),
       rx: layer.rx,
       ry: layer.rx,
+      selectable: false,
+    }),
+  );
+}
+
+function renderGradient(
+  fabric: typeof import("fabric").fabric,
+  canvas: import("fabric").fabric.Canvas,
+  layer: GradientLayer,
+  palette: Palette,
+) {
+  const angle = layer.angle ?? 0;
+  // Build the gradient direction from angle. 0° = top→bottom.
+  const rad = (angle * Math.PI) / 180;
+  const x2 = Math.sin(rad);
+  const y2 = Math.cos(rad);
+  const fill = new fabric.Gradient({
+    type: "linear",
+    coords: { x1: 0, y1: 0, x2: layer.w * x2, y2: layer.h * y2 },
+    colorStops: layer.stops.map((s) => ({
+      offset: s.offset,
+      color: resolveColour(s.color, palette),
+    })),
+  });
+  canvas.add(
+    new fabric.Rect({
+      left: layer.x,
+      top: layer.y,
+      width: layer.w,
+      height: layer.h,
+      fill,
+      rx: layer.rx,
+      ry: layer.rx,
+      selectable: false,
+    }),
+  );
+}
+
+function renderScrim(
+  fabric: typeof import("fabric").fabric,
+  canvas: import("fabric").fabric.Canvas,
+  layer: ScrimLayer,
+  palette: Palette,
+) {
+  const colour = resolveColour(layer.colour ?? "#000000", palette);
+  const alpha = layer.alpha ?? 0.7;
+  const opaque = withAlpha(colour, alpha);
+  const transparent = withAlpha(colour, 0);
+  const stops =
+    layer.from === "bottom"
+      ? [
+          { offset: 0, color: transparent },
+          { offset: 1, color: opaque },
+        ]
+      : [
+          { offset: 0, color: opaque },
+          { offset: 1, color: transparent },
+        ];
+  const fill = new fabric.Gradient({
+    type: "linear",
+    coords: { x1: 0, y1: 0, x2: 0, y2: layer.h },
+    colorStops: stops,
+  });
+  canvas.add(
+    new fabric.Rect({
+      left: layer.x,
+      top: layer.y,
+      width: layer.w,
+      height: layer.h,
+      fill,
+      selectable: false,
+    }),
+  );
+}
+
+function renderDivider(
+  fabric: typeof import("fabric").fabric,
+  canvas: import("fabric").fabric.Canvas,
+  layer: DividerLayer,
+  palette: Palette,
+) {
+  canvas.add(
+    new fabric.Rect({
+      left: layer.x,
+      top: layer.y,
+      width: layer.w,
+      height: layer.thickness ?? 1,
+      fill: resolveColour(layer.fill, palette),
       selectable: false,
     }),
   );
@@ -273,10 +390,48 @@ async function renderProduct(
         }
         const w = img.width ?? 1;
         const h = img.height ?? 1;
-        const scale = Math.min(layer.w / w, layer.h / h);
+        const fit = layer.fit ?? "contain";
+        const scale =
+          fit === "cover"
+            ? Math.max(layer.w / w, layer.h / h)
+            : Math.min(layer.w / w, layer.h / h);
+        const scaledW = w * scale;
+        const scaledH = h * scale;
+        const left =
+          fit === "cover"
+            ? layer.x + (layer.w - scaledW) / 2
+            : layer.x + (layer.w - scaledW) / 2;
+        const top =
+          fit === "cover"
+            ? layer.y + (layer.h - scaledH) / 2
+            : layer.y + (layer.h - scaledH) / 2;
+
+        // Clip path — rounded or circle mask, anchored in the layer's box.
+        let clipPath: import("fabric").fabric.Object | undefined;
+        if (layer.mask === "rounded") {
+          const r = layer.cornerRadius ?? 24;
+          clipPath = new fabric.Rect({
+            left: layer.x,
+            top: layer.y,
+            width: layer.w,
+            height: layer.h,
+            rx: r,
+            ry: r,
+            absolutePositioned: true,
+          });
+        } else if (layer.mask === "circle") {
+          const r = Math.min(layer.w, layer.h) / 2;
+          clipPath = new fabric.Circle({
+            left: layer.x + layer.w / 2 - r,
+            top: layer.y + layer.h / 2 - r,
+            radius: r,
+            absolutePositioned: true,
+          });
+        }
+
         img.set({
-          left: layer.x + (layer.w - w * scale) / 2,
-          top: layer.y + (layer.h - h * scale) / 2,
+          left,
+          top,
           scaleX: scale,
           scaleY: scale,
           selectable: false,
@@ -284,9 +439,10 @@ async function renderProduct(
             ? new fabric.Shadow({
                 color: "rgba(0,0,0,0.45)",
                 blur: 28,
-                offsetY: 12,
+                offsetY: 14,
               })
             : undefined,
+          clipPath,
         });
         canvas.add(img);
         resolve();
@@ -302,39 +458,106 @@ function renderText(
   layer: TextLayer,
   copy: { headline: string; subheadline: string; cta: string },
   fontFamily: string,
+  palette: Palette,
+  brandName: string,
 ) {
-  const text = copy[layer.key];
-  canvas.add(
+  const raw =
+    layer.key === "brand"
+      ? brandName || layer.staticText || "AdCreator"
+      : copy[layer.key];
+  if (!raw && layer.key !== "brand") return; // hide-when-empty for content
+
+  const text = layer.uppercase ? raw.toUpperCase() : raw;
+  const fontSize = layer.fontSize;
+  const minFontSize = layer.minFontSize ?? Math.max(12, fontSize * 0.6);
+  const lineHeight = layer.lineHeight ?? 1.16;
+
+  // Build the textbox once at the starting font size, then auto-fit if
+  // requested. Auto-fit shrinks the font size until the text's measured
+  // height fits maxHeight (when set) — important for Indic scripts that
+  // run wider than Latin and would otherwise overflow.
+  const buildBox = (size: number) =>
     new fabric.Textbox(text, {
       left: layer.x,
       top: layer.y,
       width: layer.maxWidth,
-      fontSize: layer.fontSize,
+      fontSize: size,
       fontFamily: `${fontFamily}, sans-serif`,
-      fill: layer.fill,
+      fill: resolveColour(layer.fill, palette),
       fontWeight: layer.fontWeight ?? "500",
       textAlign: layer.textAlign ?? "left",
+      lineHeight,
+      charSpacing: (layer.letterSpacing ?? 0) * 50, // Fabric uses 1/1000 em
       selectable: false,
       splitByGrapheme: true,
-    }),
-  );
+    });
+
+  let box = buildBox(fontSize);
+
+  if (layer.fitMode === "shrink" && layer.maxHeight) {
+    let size = fontSize;
+    // Defensive cap of 32 iterations; in practice 6–10 are enough.
+    for (let i = 0; i < 32; i++) {
+      const measured = box.height ?? 0;
+      if (measured <= layer.maxHeight || size <= minFontSize) break;
+      size = Math.max(minFontSize, size - 2);
+      box = buildBox(size);
+    }
+  }
+
+  canvas.add(box);
 }
 
 function renderCtaBtn(
   fabric: typeof import("fabric").fabric,
   canvas: import("fabric").fabric.Canvas,
   layer: CtaButtonLayer,
+  copy: { headline: string; subheadline: string; cta: string },
+  palette: Palette,
 ) {
+  const hideWhenEmpty = layer.hideWhenEmpty ?? true;
+  const paired = layer.pairedWith ?? "cta";
+  if (
+    hideWhenEmpty &&
+    paired !== "brand" &&
+    !copy[paired as "cta" | "headline" | "subheadline"]
+  ) {
+    return; // copy field empty — drop the button background entirely
+  }
   canvas.add(
     new fabric.Rect({
       left: layer.x,
       top: layer.y,
       width: layer.w,
       height: layer.h,
-      fill: layer.fill,
+      fill: resolveColour(layer.fill, palette),
       rx: layer.rx,
       ry: layer.rx,
       selectable: false,
     }),
   );
+}
+
+/** Apply alpha to a hex (#rrggbb / #rgb) or pass-through other strings. */
+function withAlpha(colour: string, alpha: number): string {
+  const a = Math.max(0, Math.min(1, alpha));
+  if (!colour.startsWith("#")) {
+    // rgba() / named colour — wrap in a CSS rgba via a reasonable fallback.
+    return colour.replace(/[\d.]+\)$/, `${a})`).startsWith("rgba")
+      ? colour.replace(/[\d.]+\)$/, `${a})`)
+      : colour;
+  }
+  const hex = colour.slice(1);
+  const expanded =
+    hex.length === 3
+      ? hex
+          .split("")
+          .map((c) => c + c)
+          .join("")
+      : hex;
+  if (expanded.length !== 6) return colour;
+  const r = Number.parseInt(expanded.slice(0, 2), 16);
+  const g = Number.parseInt(expanded.slice(2, 4), 16);
+  const b = Number.parseInt(expanded.slice(4, 6), 16);
+  return `rgba(${r}, ${g}, ${b}, ${a})`;
 }
