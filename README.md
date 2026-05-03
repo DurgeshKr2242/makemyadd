@@ -133,8 +133,21 @@ This repo is **agent-optimised**. Several files exist specifically to make agent
 - **`CLAUDE.md`** — single-line `@AGENTS.md` import for Claude Code.
 - **`client/DESIGN.md`** — design system source of truth. Read before any UI change.
 - **`.claude/skills/ui/SKILL.md`** — auto-activates on UI requests, enforces DESIGN.md + frontend-design philosophy (no AI slop, distinctive typography, atmospheric backgrounds, BOLD aesthetic intent).
-- **`.mcp.json`** — 11 MCP servers wired (Next.js, Supabase ×2, Cloudflare R2 + Observability, Vercel, Sentry, PostHog, GitHub, shadcn, Playwright). Run `pnpm mcp:doctor` from `client/` to verify reachability.
+- **`.mcp.json`** — 10 MCP servers wired (Next.js dev-tools, Supabase, Cloudflare R2 + Observability, Vercel, Sentry, PostHog, GitHub, shadcn, Playwright). Run `pnpm mcp:doctor` from `client/` to verify reachability.
 - **`client/node_modules/next/dist/docs/`** — Next.js docs version-matched to the installed canary, bundled with the package. AGENTS.md tells agents to read this instead of relying on potentially-outdated training data.
+
+### MCP auth — what needs a token, what doesn't
+
+Most MCPs use **OAuth on first call** — the agent opens a browser, you click approve, done. No tokens stored anywhere. This applies to: Supabase, Cloudflare R2, Cloudflare Observability, Vercel, Sentry, GitHub.
+
+A few still need a token in your shell env (or `~/.config/claude/.env` — **never** committed):
+
+| MCP | Env var | Where to get it |
+|---|---|---|
+| PostHog | `POSTHOG_AUTH_HEADER` | PostHog Settings → Personal API Keys → format as `Bearer phx_xxx` |
+| Sentry source-map upload (CI only, not the MCP itself) | `SENTRY_AUTH_TOKEN` | Sentry → Settings → Auth Tokens → scope `project:releases` |
+
+The Supabase CLI (separate from the MCP) keeps its own token at `~/.supabase/access-token` after `pnpm supabase login`. You don't need to copy it anywhere — `db:push`, `db:types`, and `db:diff` all read it transparently.
 
 A scheduled remote agent runs every 8 hours, audits the repo for stalled 501 stubs, and reports the next-best candidate to wire. Manage at https://claude.ai/code/routines/trig_01LwtHEiA7tchDV4ZjmKmZob.
 
@@ -172,7 +185,7 @@ Vercel Hobby has a 10s function timeout. HuggingFace's RMBG-1.4 endpoint can tak
 
 ### `pnpm mcp:doctor` shows servers DOWN
 
-`nextjs` is expected DOWN until `pnpm dev` is running (it polls `localhost:3000/_next/mcp`). Anything else DOWN means the URL/token in `.mcp.json` needs updating — see the comment block in `.mcp.json` and AGENTS.md § "MCP usage".
+`next-devtools` is `next-devtools-mcp@latest` — it auto-discovers a running Next.js dev server, so it's UP via stdio handshake regardless of whether `pnpm dev` is up (no live state until then, but the MCP itself is reachable). Anything else DOWN means the URL/token in `.mcp.json` needs updating — see the comment block in `.mcp.json` and AGENTS.md § "MCP usage". `cloudflare-r2`'s endpoint URL is currently stale; safe to ignore until §16 wires R2 access.
 
 ---
 

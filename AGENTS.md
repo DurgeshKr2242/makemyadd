@@ -10,7 +10,8 @@ This version has breaking changes — APIs, conventions, and file structure may 
 
 ## Where things live
 
-- The Next.js application lives in `client/`. The `package.json`, `tsconfig.json`, `biome.json`, `next.config.ts`, and all source code are inside `client/`. Run pnpm/npx commands from `client/` unless the task is repo-wide (git, MCP).
+- The Next.js application lives in `client/`. The app `package.json`, `tsconfig.json`, `biome.json`, `next.config.ts`, and all source code are inside `client/`. Run pnpm/npx commands from `client/` unless the task is repo-wide (git, MCP).
+- The repo root has a tiny `package.json` whose only job is to **fail any `pnpm/npm/yarn install` run from the root** with a friendly "cd into client/" message. If you see that error, you are in the wrong directory — `cd client` and re-run. Do not "fix" the root package.json by removing the preinstall guard; it exists because tools like the Sentry wizard and `shadcn` CLI have created stray `node_modules/` and `client/client/` dirs at the root in the past.
 - Bundled, version-matched Next.js docs: `client/node_modules/next/dist/docs/`. **Always read the relevant page from here before changing routing, data fetching, caching, middleware, or config.** Your training data on Next.js 16 is incomplete.
 - Build plan / source of truth for product scope: `TODO.md` at the repo root. Tick boxes as work lands; do not delete unchecked items.
 - Product spec (immutable): `docs/adcreator_technical_spec.pdf` (and the extracted text alongside). Quote the spec section number in PR descriptions when implementing a feature so reviewers can map back.
@@ -38,7 +39,7 @@ When you change a rule here, update the mirrors so the rule reaches every agent.
 
 - All schema changes go through **`client/supabase/migrations/*.sql`**. Never edit schema in the Supabase dashboard. Run the Supabase CLI from inside `client/` (where `package.json` and `.env.local` live).
 - Regenerate types after every migration: `pnpm db:types`. Never hand-edit `client/lib/supabase/database.types.ts`.
-- Use the **Supabase MCP** (`supabase-local` for read-write, `supabase-prod` for read-only) for schema lookups instead of guessing column names.
+- Use the **Supabase MCP** (single `supabase` entry, project-scoped to `ekmdcwmspfvxvyibbzmw` via OAuth) for schema lookups, query execution, and advisors instead of guessing column names. Live `database.types.ts` is also generated from this project — `pnpm db:types` to refresh.
 - Row-Level Security is enabled on every user-facing table. Service-role client (`lib/supabase/admin.ts`) is the only path that bypasses RLS — **never** import it from a Client Component or any file under `app/(dashboard)`. There is a Biome lint rule preventing this; if you see it fire, fix the import, do not silence the rule.
 
 ## Indic text rendering (critical)

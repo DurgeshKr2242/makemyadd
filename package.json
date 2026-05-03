@@ -1,0 +1,8 @@
+{
+  "name": "makemyadd-repo-root",
+  "private": true,
+  "description": "Repo root guard — the actual app lives in client/. This file exists to fail loudly if you accidentally run npm/pnpm/yarn install from the repo root.",
+  "scripts": {
+    "preinstall": "node -e \"console.error('\\n[STOP] Do not install from the repo root.\\n\\nThe app lives in client/. Run:\\n\\n  cd client && pnpm install\\n\\nIf you are a tool (Sentry wizard, shadcn CLI, etc.) that landed here by accident, cd into client/ first.\\n'); process.exit(1)\""
+  }
+}

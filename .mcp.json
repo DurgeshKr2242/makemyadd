@@ -1,59 +1,34 @@
 {
   "$schema": "https://modelcontextprotocol.io/schemas/mcp.json",
-  "_comment": "MCP server catalogue for India AI Ad Creator. See AGENTS.md > 'MCP usage' for rules. Tokens come from the shell env (or ~/.config/claude/.env) via ${VAR} substitution — never inline secrets here.",
+  "_comment": "MCP server catalogue for India AI Ad Creator. See AGENTS.md > 'MCP usage' for rules. Hosted MCPs use OAuth so no shell tokens needed; locally-spawned ones read tokens from your shell or ~/.config/claude/.env.",
   "mcpServers": {
-    "nextjs": {
-      "_purpose": "Live dev-server state: routes, build errors, server logs. Requires the Next.js MCP server flag enabled in next.config.ts and `pnpm dev` running.",
-      "url": "http://localhost:3000/_next/mcp"
-    },
-    "supabase-local": {
-      "_purpose": "Read-write access to the LOCAL Supabase project for schema work, migrations, and type generation.",
+    "next-devtools": {
+      "_purpose": "Next.js 16 dev-server state: routes, build errors, runtime/type errors, server actions, project metadata. Auto-discovers the Next.js dev server when `pnpm dev` is running.",
       "command": "npx",
-      "args": [
-        "-y",
-        "@supabase/mcp-server-supabase@latest",
-        "--project-ref",
-        "${SUPABASE_PROJECT_REF_LOCAL}"
-      ],
-      "env": {
-        "SUPABASE_ACCESS_TOKEN": "${SUPABASE_ACCESS_TOKEN}"
-      }
+      "args": ["-y", "next-devtools-mcp@latest"]
     },
-    "supabase-prod": {
-      "_purpose": "READ-ONLY access to the production Supabase project. Never enable write tools against this entry.",
-      "command": "npx",
-      "args": [
-        "-y",
-        "@supabase/mcp-server-supabase@latest",
-        "--project-ref",
-        "${SUPABASE_PROJECT_REF_PROD}",
-        "--read-only"
-      ],
-      "env": {
-        "SUPABASE_ACCESS_TOKEN": "${SUPABASE_ACCESS_TOKEN}"
-      }
+    "supabase": {
+      "_purpose": "Read-write access to the linked Supabase project (database, auth, edge functions, storage, branching). OAuth on first use — no SUPABASE_ACCESS_TOKEN needed.",
+      "url": "https://mcp.supabase.com/mcp?project_ref=ekmdcwmspfvxvyibbzmw"
     },
     "cloudflare-r2": {
-      "_purpose": "Inspect R2 buckets (uploads, processed, public) and presign objects.",
+      "_purpose": "Inspect R2 buckets (uploads, processed, public) and presign objects. OAuth on first use.",
       "url": "https://r2.mcp.cloudflare.com/sse"
     },
     "cloudflare-observability": {
-      "_purpose": "Cloudflare cache analytics, Turnstile challenges, R2 metrics.",
+      "_purpose": "Cloudflare cache analytics, Turnstile challenges, R2 metrics. OAuth on first use.",
       "url": "https://observability.mcp.cloudflare.com/sse"
     },
     "vercel": {
-      "_purpose": "Deploy status, env-var inspection, function logs, preview URL fetch.",
+      "_purpose": "Deploy status, env-var inspection, function logs, preview URL fetch. OAuth on first use.",
       "url": "https://mcp.vercel.com/"
     },
     "sentry": {
-      "_purpose": "Issue search, event details, release tagging.",
-      "url": "https://mcp.sentry.dev/sse",
-      "env": {
-        "SENTRY_AUTH_TOKEN": "${SENTRY_AUTH_TOKEN}"
-      }
+      "_purpose": "Issue search, event details, release tagging. OAuth on first use.",
+      "url": "https://mcp.sentry.dev/sse"
     },
     "posthog": {
-      "_purpose": "Query events, funnel checks, feature-flag state.",
+      "_purpose": "Query events, funnel checks, feature-flag state. Needs POSTHOG_AUTH_HEADER in shell env.",
       "command": "npx",
       "args": ["-y", "@posthog/mcp@latest"],
       "env": {

@@ -82,8 +82,9 @@ This codebase is agent-friendly. Several files exist to make agents produce good
 - `.github/copilot-instructions.md` — Copilot mirror (TODO).
 - `client/DESIGN.md` — design system source of truth.
 - `.claude/skills/ui/SKILL.md` — auto-activates on UI work, enforces design system.
-- `.mcp.json` — 11 MCP servers wired (Supabase, Cloudflare R2, Vercel, Sentry, PostHog, GitHub, shadcn, Playwright, Next.js dev server). Run `pnpm mcp:doctor` to verify.
-- `client/node_modules/next/dist/docs/` — version-matched Next.js docs bundled with the package. Agents read these instead of relying on stale training data.
+- `.mcp.json` — 10 MCP servers wired (Supabase, Cloudflare R2 + Observability, Vercel, Sentry, PostHog, GitHub, shadcn, Playwright, Next.js dev-tools). Run `pnpm mcp:doctor` to verify. Most use OAuth on first call — see README "MCP auth" for the few that need shell tokens.
+- Next.js MCP: in Next.js 16+, the dev server exposes `/_next/mcp` automatically — no config flag. The `next-devtools-mcp` package in `.mcp.json` discovers it. Reference: https://nextjs.org/docs/app/guides/mcp-server
+- `client/node_modules/next/dist/docs/` — version-matched Next.js docs bundled with the package. Agents read these instead of relying on stale training data. Run `pnpm docs:next` from `client/` to open them locally.
 
 If you find yourself fighting an agent, the fix is usually to add a rule to `AGENTS.md` rather than to hand-correct each file. Make the constraint visible and the agent will follow it next time.
 
