@@ -25,6 +25,7 @@ import { containsRestrictedKeyword } from "./blocklist";
 import { resolvePublicHostname } from "./dns-guard";
 import { extractJsonLdProduct } from "./json-ld";
 import { isLoginWall } from "./login-wall";
+import { fetchAndRehostImage } from "./rehost-image";
 
 const FETCH_TIMEOUT_MS = 5_000;
 const MAX_BODY_BYTES = 2 * 1024 * 1024; // 2 MB
@@ -203,15 +204,21 @@ export async function scrapeProductUrl(input: string): Promise<ScrapedProduct> {
     );
   }
 
-  // Image: absolute-resolve here. R2 re-hosting wires in Task 9 so the
-  // canvas isn't dependent on the merchant's CDN at render time.
+  // Re-host the og:image to R2 so the canvas isn't dependent on the
+  // merchant's CDN at render time. Falls back to the original URL when R2
+  // isn't configured or the image is hot-link-protected.
   const imageRaw = ld?.image ?? ogImage;
-  const productImageUrl = imageRaw ? resolveAbsolute(url, imageRaw) : undefined;
+  let finalImageUrl: string | undefined;
+  if (imageRaw) {
+    const absolute = resolveAbsolute(url, imageRaw);
+    const rehost = await fetchAndRehostImage(absolute);
+    finalImageUrl = "rehostedUrl" in rehost ? rehost.rehostedUrl : absolute;
+  }
 
   return {
     productName: productName || "Untitled product",
     productDesc,
-    productImageUrl,
+    productImageUrl: finalImageUrl,
     brand: ld?.brand ? sanitize(ld.brand, 80) : undefined,
     price: ld?.price,
   };
