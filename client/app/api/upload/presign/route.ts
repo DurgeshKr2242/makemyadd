@@ -5,6 +5,8 @@ import "server-only";
 
 import { type NextRequest, NextResponse } from "next/server";
 
+import { isR2Configured, presignPut, publicUrl } from "@/lib/r2/client";
+import { uploadKey } from "@/lib/r2/keys";
 import { PresignRequestSchema } from "@/lib/schemas/generation";
 import { createClient } from "@/lib/supabase/server";
 
@@ -18,7 +20,6 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  // Re-verify session to obtain the user id (middleware already ensured auth).
   const supabase = await createClient();
   const {
     data: { user },
@@ -27,12 +28,28 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
 
-  // TODO §5 — implement R2 presign:
-  //   - Build key: uploads/{user.id}/{crypto.randomUUID()}.{ext}
-  //   - getSignedUrl(r2, new PutObjectCommand({...}), { expiresIn: 300 })
-  //   - Return { presignedUrl, key, publicUrl }
-  return NextResponse.json(
-    { error: "not_implemented", spec: "§5" },
-    { status: 501 },
-  );
+  if (!isR2Configured()) {
+    return NextResponse.json(
+      {
+        error: "r2_not_configured",
+        message:
+          "Photo upload isn't configured for this environment yet. Try again later or paste a product URL.",
+      },
+      { status: 503 },
+    );
+  }
+
+  // ext: prefer the part after the last dot in the filename, falling back
+  // to the contentType subtype. uploadKey() throws on non-alphanumeric ext.
+  const fromName = parsed.data.filename.split(".").pop()?.toLowerCase() ?? "";
+  const fromType = parsed.data.contentType.split("/")[1]?.toLowerCase() ?? "";
+  const ext = /^[a-z0-9]+$/.test(fromName) ? fromName : fromType;
+
+  const key = uploadKey(user.id, ext);
+  const presignedUrl = await presignPut(key, parsed.data.contentType);
+  return NextResponse.json({
+    presignedUrl,
+    key,
+    publicUrl: publicUrl(key, "uploads"),
+  });
 }
