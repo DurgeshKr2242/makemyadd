@@ -88,7 +88,7 @@
     "@testing-library/react": "^16.3.2",
     "@types/fabric": "^5.3.11",
     "@types/jsdom": "^28.0.1",
-    "@types/node": "^20",
+    "@types/node": "^25",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "@vitest/coverage-v8": "^4.1.5",
