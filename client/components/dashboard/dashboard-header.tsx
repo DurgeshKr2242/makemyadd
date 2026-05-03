@@ -1,19 +1,11 @@
 "use client";
 
-import { ChevronDown, Search, Sparkles } from "lucide-react";
+import { Search, Sparkles } from "lucide-react";
 import Link from "next/link";
 
 import { openCommandPalette } from "@/components/command/command-palette";
 import { UsageBadge } from "@/components/dashboard/usage-badge";
-import { Button } from "@/components/ui/button";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+import { UserMenu } from "@/components/dashboard/user-menu";
 
 const NAV = [
   { href: "/dashboard", label: "Make ad" },
@@ -22,7 +14,15 @@ const NAV = [
   { href: "/settings", label: "Settings" },
 ];
 
-export function DashboardHeader({ userEmail }: { userEmail?: string }) {
+export function DashboardHeader({
+  email,
+  fullName,
+  plan,
+}: {
+  email?: string;
+  fullName?: string | null;
+  plan?: string | null;
+}) {
   return (
     <header className="sticky top-0 z-40 glass">
       <div className="mx-auto max-w-screen-2xl px-4 sm:px-6 lg:px-8 h-14 flex items-center justify-between gap-4">
@@ -50,7 +50,6 @@ export function DashboardHeader({ userEmail }: { userEmail?: string }) {
         </div>
 
         <div className="flex items-center gap-2">
-          {/* ⌘K search trigger — between nav and UsageBadge */}
           <button
             type="button"
             onClick={openCommandPalette}
@@ -65,27 +64,7 @@ export function DashboardHeader({ userEmail }: { userEmail?: string }) {
 
           <UsageBadge />
 
-          <DropdownMenu>
-            <DropdownMenuTrigger
-              render={
-                <Button variant="outline" size="sm">
-                  Account <ChevronDown />
-                </Button>
-              }
-            />
-            <DropdownMenuContent align="end">
-              {userEmail ? (
-                <DropdownMenuLabel>{userEmail}</DropdownMenuLabel>
-              ) : null}
-              <DropdownMenuSeparator />
-              <DropdownMenuItem
-                render={<Link href="/settings">Settings</Link>}
-              />
-              <DropdownMenuItem render={<Link href="/billing">Billing</Link>} />
-              <DropdownMenuSeparator />
-              <DropdownMenuItem render={<Link href="/logout">Sign out</Link>} />
-            </DropdownMenuContent>
-          </DropdownMenu>
+          <UserMenu email={email} fullName={fullName} plan={plan} />
         </div>
       </div>
     </header>

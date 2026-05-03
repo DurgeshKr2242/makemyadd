@@ -2,18 +2,15 @@
  * Dashboard layout — server component.
  *
  * Gates everything under /dashboard, /history, /billing, /settings on a
- * Supabase session. The middleware also protects these paths, but the layout
- * does an explicit check so that:
- *   1. Server components downstream can rely on `user` being set.
- *   2. We can pass `user.email` to the header without a client-side fetch.
+ * Supabase session. The middleware also protects these paths; this layout's
+ * explicit check guarantees `user` is set for child server pages and lets us
+ * pass identity into the header without a client-side fetch.
  *
- * If Supabase env vars aren't set yet (fresh checkout), we render the chrome
- * with a placeholder email so the dev experience isn't blocked. Auth wiring
- * lands in TODO §6.
+ * Falls back to a placeholder identity when Supabase env vars are missing
+ * (fresh checkout) so the dev experience isn't blocked.
  */
-import { redirect } from "next/navigation";
-
 import { DashboardHeader } from "@/components/dashboard/dashboard-header";
+import { getCurrentUser } from "@/lib/auth/get-current-user";
 import { publicEnv } from "@/lib/env";
 
 export default async function DashboardLayout({
@@ -21,29 +18,25 @@ export default async function DashboardLayout({
 }: {
   children: React.ReactNode;
 }) {
-  let userEmail: string | undefined;
+  let email: string | undefined;
+  let fullName: string | null = null;
+  let plan: string | null = null;
 
   if (
     publicEnv.NEXT_PUBLIC_SUPABASE_URL &&
     publicEnv.NEXT_PUBLIC_SUPABASE_ANON_KEY
   ) {
-    const { createClient } = await import("@/lib/supabase/server");
-    const supabase = await createClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    if (!user) {
-      redirect("/login");
-    }
-    userEmail = user.email ?? undefined;
+    const { user, profile } = await getCurrentUser();
+    email = user.email ?? undefined;
+    fullName = profile?.full_name ?? null;
+    plan = profile?.plan ?? null;
   } else {
-    userEmail = "you@brand.in (dev mode)";
+    email = "you@brand.in (dev mode)";
   }
 
   return (
     <>
-      <DashboardHeader userEmail={userEmail} />
+      <DashboardHeader email={email} fullName={fullName} plan={plan} />
       <main id="main" className="flex-1">
         {children}
       </main>
