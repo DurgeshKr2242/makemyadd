@@ -21,6 +21,9 @@ const ServerEnvSchema = z.object({
 
   // AI providers
   GROQ_API_KEY: z.string().min(1).optional(),
+  // Optional override — pin a specific Groq vision model. Default in code:
+  // meta-llama/llama-4-scout-17b-16e-instruct
+  GROQ_VISION_MODEL: z.string().min(1).optional(),
   HUGGINGFACE_TOKEN: z.string().min(1).optional(),
 
   // Cloudflare R2
