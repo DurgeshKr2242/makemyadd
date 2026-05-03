@@ -37,9 +37,10 @@ test-results/
 # Vercel
 .vercel/
 
-# Supabase
-supabase/.branches/
-supabase/.temp/
+# Supabase (CLI scratch dirs — patterns match at any depth so they hit
+# client/supabase/.temp/ too)
+**/supabase/.branches/
+**/supabase/.temp/
 
 # Editors
 .idea/

@@ -11,6 +11,11 @@
     "format": "biome format --write",
     "typecheck": "tsc --noEmit",
     "mcp:doctor": "node ../tools/mcp-doctor.mjs",
+    "docs:next": "open node_modules/next/dist/docs/index.mdx",
+    "db:types": "supabase gen types typescript --linked --schema public > lib/supabase/database.types.ts && biome format --write lib/supabase/database.types.ts",
+    "db:push": "supabase db push",
+    "db:reset": "supabase db reset",
+    "db:diff": "supabase db diff --use-migra",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
@@ -22,6 +27,11 @@
   "lint-staged": {
     "*.{ts,tsx,js,jsx,mjs,cjs,json,jsonc,css}": [
       "biome check --write --no-errors-on-unmatched"
+    ]
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "supabase"
     ]
   },
   "dependencies": {
@@ -85,6 +95,7 @@
     "jsdom": "^29.1.0",
     "lint-staged": "^16.4.0",
     "playwright": "^1.59.1",
+    "supabase": "^2.40.7",
     "tailwindcss": "^4",
     "typescript": "^5",
     "vitest": "^4.1.5"

@@ -18,7 +18,7 @@ max_rows = 1000
 [db]
 port = 54322
 shadow_port = 54320
-major_version = 15
+major_version = 17
 
 [studio]
 enabled = true
@@ -41,7 +41,15 @@ enable_signup = true
 enable_confirmations = false   # MVP: skip confirmation. Re-enable in Phase 2 (see TODO §3.1).
 
 [auth.external.google]
-enabled = true
-# client_id and secret come from Vercel env / `supabase secrets set` — do
-# NOT commit them.
+# Disabled until we wire OAuth in §3 — having `enabled = true` without a
+# client_id makes `supabase link` refuse to load this config.
+#
+# When you're ready to turn this on:
+#   1. Set GOOGLE_OAUTH_CLIENT_ID + GOOGLE_OAUTH_SECRET in your shell or
+#      ~/.config/claude/.env (NEVER commit them).
+#   2. Flip `enabled = true` and uncomment the env() lines below.
+#   3. Run `pnpm supabase link` again to push the config.
+enabled = false
+# client_id     = "env(GOOGLE_OAUTH_CLIENT_ID)"
+# secret        = "env(GOOGLE_OAUTH_SECRET)"
 redirect_uri = "http://localhost:54321/auth/v1/callback"
