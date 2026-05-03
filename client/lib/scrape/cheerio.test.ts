@@ -3,6 +3,14 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 // Mock server-only so it doesn't throw outside Next.js runtime.
 vi.mock("server-only", () => ({}));
 
+// DNS lookup is mocked module-wide — every scrape test passes the DNS guard.
+vi.mock("node:dns/promises", () => ({
+  default: {
+    lookup: vi.fn().mockResolvedValue([{ address: "104.21.50.1", family: 4 }]),
+  },
+  lookup: vi.fn().mockResolvedValue([{ address: "104.21.50.1", family: 4 }]),
+}));
+
 import { isPublicHttpsUrl, ScrapeError, scrapeProductUrl } from "./cheerio";
 
 describe("isPublicHttpsUrl — SSRF guard", () => {
@@ -126,5 +134,59 @@ describe("scrapeProductUrl", () => {
       name: "ScrapeError",
       code: "fetch_failed",
     });
+  });
+
+  it("prefers JSON-LD Product over OG when both are present", async () => {
+    const html = `<html><head>
+      <meta property="og:title" content="OG Title" />
+      <script type="application/ld+json">{
+        "@type":"Product","name":"LD Title","description":"LD desc",
+        "image":"https://shop.example.in/x.jpg","brand":"Anokhi",
+        "offers":{"price":"1499","priceCurrency":"INR"}
+      }</script>
+    </head></html>`;
+    (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce(
+      new Response(html, {
+        status: 200,
+        headers: { "content-type": "text/html" },
+      }),
+    );
+    const r = await scrapeProductUrl("https://shop.example.in/p");
+    expect(r.productName).toBe("LD Title");
+    expect(r.productDesc).toBe("LD desc");
+    expect(r.brand).toBe("Anokhi");
+    expect(r.price).toEqual({ amount: 1499, currency: "INR" });
+  });
+
+  it("rejects pages with restricted keywords", async () => {
+    const html = `<html><head>
+      <meta property="og:title" content="Casino bonus" />
+      <meta property="og:description" content="Sign up for free chips" />
+    </head></html>`;
+    (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce(
+      new Response(html, {
+        status: 200,
+        headers: { "content-type": "text/html" },
+      }),
+    );
+    await expect(
+      scrapeProductUrl("https://shop.example.in/casino"),
+    ).rejects.toMatchObject({ code: "restricted_content" });
+  });
+
+  it("rejects login-wall pages", async () => {
+    const html = `<html><head>
+      <meta name="robots" content="noindex" />
+      <title>Sign in to your account</title>
+    </head><body>Please log in to continue</body></html>`;
+    (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce(
+      new Response(html, {
+        status: 200,
+        headers: { "content-type": "text/html" },
+      }),
+    );
+    await expect(
+      scrapeProductUrl("https://shop.example.in/account"),
+    ).rejects.toMatchObject({ code: "login_wall" });
   });
 });

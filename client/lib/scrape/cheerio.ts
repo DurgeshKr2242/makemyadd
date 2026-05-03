@@ -5,19 +5,26 @@
  * security constraints:
  *
  *   - HTTPS only
- *   - Public hostnames only (block IP literals, RFC1918, link-local,
- *     loopback, the cloud metadata endpoint 169.254.169.254)
+ *   - Public hostnames only (block IP literals + hostnames whose A/AAAA
+ *     records resolve to private space — see ./dns-guard)
  *   - 5s timeout via AbortSignal
  *   - 2 MB response cap (bail before reading the whole body)
  *   - User-Agent header set so polite servers don't block us
  *   - Sanitise extracted strings via isomorphic-dompurify before they
  *     touch the DB or render in the dashboard
  *
- * Returns the og:title / description / image, falling back to <title>,
- * <meta name="description">, and the first <h1> when og tags are absent.
+ * Parse priority: JSON-LD Product schema → og:* meta tags → <title> /
+ * <meta name="description"> / <h1>. JSON-LD wins because it gives us
+ * brand + price + structured image alongside name + description.
  */
 import "server-only";
 import { load } from "cheerio";
+import DOMPurify from "isomorphic-dompurify";
+
+import { containsRestrictedKeyword } from "./blocklist";
+import { resolvePublicHostname } from "./dns-guard";
+import { extractJsonLdProduct } from "./json-ld";
+import { isLoginWall } from "./login-wall";
 
 const FETCH_TIMEOUT_MS = 5_000;
 const MAX_BODY_BYTES = 2 * 1024 * 1024; // 2 MB
@@ -28,17 +35,22 @@ export type ScrapedProduct = {
   productName: string;
   productDesc: string;
   productImageUrl?: string;
+  brand?: string;
+  price?: { amount: number; currency: string };
 };
 
 export class ScrapeError extends Error {
   constructor(
     public readonly code:
       | "invalid_url"
+      | "dns_blocked"
       | "blocked_host"
       | "fetch_failed"
       | "timeout"
       | "body_too_large"
-      | "no_metadata",
+      | "no_metadata"
+      | "login_wall"
+      | "restricted_content",
     message: string,
   ) {
     super(message);
@@ -61,15 +73,12 @@ export function isPublicHttpsUrl(
     return { ok: false, reason: "must be https" };
   }
   const host = url.hostname.toLowerCase();
-  // IP literal check — block all IPs (no scraping by IP)
   if (/^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/.test(host)) {
     return { ok: false, reason: "IP literals not allowed" };
   }
   if (host.includes(":")) {
-    // IPv6 literal
     return { ok: false, reason: "IP literals not allowed" };
   }
-  // Block the obvious internal names
   const BLOCKED = ["localhost", "metadata.google.internal", "metadata"];
   if (
     BLOCKED.includes(host) ||
@@ -83,10 +92,14 @@ export function isPublicHttpsUrl(
 
 export async function scrapeProductUrl(input: string): Promise<ScrapedProduct> {
   const guard = isPublicHttpsUrl(input);
-  if (!guard.ok) {
-    throw new ScrapeError("invalid_url", guard.reason);
-  }
+  if (!guard.ok) throw new ScrapeError("invalid_url", guard.reason);
   const { url } = guard;
+
+  // DNS-level SSRF guard — closes the "evil.com → A 10.0.0.1" bypass.
+  const dnsCheck = await resolvePublicHostname(url.hostname);
+  if (!dnsCheck.ok) {
+    throw new ScrapeError("dns_blocked", dnsCheck.reason);
+  }
 
   const ac = new AbortController();
   const timer = setTimeout(() => ac.abort(), FETCH_TIMEOUT_MS);
@@ -120,7 +133,6 @@ export async function scrapeProductUrl(input: string): Promise<ScrapedProduct> {
     throw new ScrapeError("fetch_failed", `upstream ${response.status}`);
   }
 
-  // Bail before reading the whole body if Content-Length is huge
   const declaredLen = Number(response.headers.get("content-length") ?? "0");
   if (declaredLen > MAX_BODY_BYTES) {
     throw new ScrapeError(
@@ -137,31 +149,71 @@ export async function scrapeProductUrl(input: string): Promise<ScrapedProduct> {
     );
   }
 
-  // Read with a streaming size cap — Content-Length might lie
   const html = await readWithLimit(response, MAX_BODY_BYTES);
-  const $ = load(html);
 
+  // ─── JSON-LD takes priority — richer data when available ────────────────
+  const ld = extractJsonLdProduct(html);
+
+  // ─── OG / fallback parse ─────────────────────────────────────────────────
+  const $ = load(html);
   const ogTitle = $('meta[property="og:title"]').attr("content")?.trim();
   const ogDesc = $('meta[property="og:description"]').attr("content")?.trim();
   const ogImage = $('meta[property="og:image"]').attr("content")?.trim();
   const docTitle = $("title").first().text().trim();
   const metaDesc = $('meta[name="description"]').attr("content")?.trim();
   const h1 = $("h1").first().text().trim();
+  const robots = $('meta[name="robots"]').attr("content")?.toLowerCase() ?? "";
+  const hasNoIndex = robots.includes("noindex");
+  const bodyText = $("body").text().slice(0, 4000);
 
-  const productName = clean(ogTitle ?? docTitle ?? h1, ALLOWED_NAME_LEN);
-  const productDesc = clean(ogDesc ?? metaDesc ?? "", ALLOWED_DESC_LEN);
+  // Login-wall detection runs against the assembled signal set.
+  if (
+    isLoginWall({
+      title: ld?.name ?? ogTitle ?? docTitle ?? "",
+      finalUrl: response.url,
+      hasNoIndex,
+      bodyText,
+    })
+  ) {
+    throw new ScrapeError("login_wall", "page looks like an auth wall");
+  }
+
+  const productName = sanitize(
+    ld?.name ?? ogTitle ?? docTitle ?? h1 ?? "",
+    ALLOWED_NAME_LEN,
+  );
+  const productDesc = sanitize(
+    ld?.description ?? ogDesc ?? metaDesc ?? "",
+    ALLOWED_DESC_LEN,
+  );
 
   if (!productName && !productDesc) {
     throw new ScrapeError(
       "no_metadata",
-      "could not find og:title / title / description on page",
+      "could not find product metadata on page",
     );
   }
+
+  // Restricted-content gate — runs only after we have something to check.
+  const haystack = `${productName} ${productDesc}`;
+  if (containsRestrictedKeyword(haystack)) {
+    throw new ScrapeError(
+      "restricted_content",
+      "page contains restricted keywords",
+    );
+  }
+
+  // Image: absolute-resolve here. R2 re-hosting wires in Task 9 so the
+  // canvas isn't dependent on the merchant's CDN at render time.
+  const imageRaw = ld?.image ?? ogImage;
+  const productImageUrl = imageRaw ? resolveAbsolute(url, imageRaw) : undefined;
 
   return {
     productName: productName || "Untitled product",
     productDesc,
-    productImageUrl: ogImage ? resolveAbsolute(url, ogImage) : undefined,
+    productImageUrl,
+    brand: ld?.brand ? sanitize(ld.brand, 80) : undefined,
+    price: ld?.price,
   };
 }
 
@@ -169,11 +221,7 @@ export async function scrapeProductUrl(input: string): Promise<ScrapedProduct> {
  *  Avoids loading a 50 MB malicious HTML response into memory. */
 async function readWithLimit(res: Response, maxBytes: number): Promise<string> {
   const reader = res.body?.getReader();
-  if (!reader) {
-    // Fallback for environments without ReadableStream — accept text() with
-    // the trust we already content-length-checked above.
-    return res.text();
-  }
+  if (!reader) return res.text();
   const chunks: Uint8Array[] = [];
   let total = 0;
   while (true) {
@@ -197,19 +245,21 @@ async function readWithLimit(res: Response, maxBytes: number): Promise<string> {
   return new TextDecoder("utf-8").decode(merged);
 }
 
-function clean(input: string, maxLen: number): string {
-  // Collapse whitespace + truncate. We're scraping HTML metadata which
-  // shouldn't ever contain script tags (that's not the attack surface for
-  // OG-tag scraping), but DOMPurify is a defensive layer for the eventual
-  // /dashboard render of the extracted text.
-  const collapsed = input.replace(/\s+/g, " ").trim();
-  return collapsed.slice(0, maxLen);
+/** Defensive — DOMPurify strips any HTML/script that snuck into a meta
+ *  string (rare in og:title etc., but cheap insurance). Then collapse
+ *  whitespace and truncate. */
+function sanitize(input: string, maxLen: number): string {
+  const stripped = DOMPurify.sanitize(input, {
+    ALLOWED_TAGS: [],
+    ALLOWED_ATTR: [],
+  });
+  return stripped.replace(/\s+/g, " ").trim().slice(0, maxLen);
 }
 
 function resolveAbsolute(base: URL, maybeRelative: string): string {
   try {
     return new URL(maybeRelative, base).href;
   } catch {
-    return maybeRelative; // Let the consumer deal with it
+    return maybeRelative;
   }
 }

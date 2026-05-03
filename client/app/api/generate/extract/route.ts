@@ -47,10 +47,11 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({
         productName: product.productName,
         productDesc: product.productDesc,
-        // The schema requires a productImageUrl field. If the page has no
-        // og:image, return the original URL so the client can fall back to
-        // the photo upload path. Real extraction wires R2 re-hosting in §6.1.
+        // The schema requires productImageUrl. If the page had no og:image,
+        // return the original URL so the client can offer the upload fallback.
         productImageUrl: product.productImageUrl ?? parsed.inputUrl,
+        ...(product.brand ? { brand: product.brand } : {}),
+        ...(product.price ? { price: product.price } : {}),
       });
     } catch (err) {
       if (err instanceof ScrapeError) {

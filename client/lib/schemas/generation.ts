@@ -51,6 +51,13 @@ export const ExtractResponseSchema = z.object({
   productDesc: z.string().max(2000),
   productImageUrl: z.string().url(),
   category: z.enum(CATEGORIES).optional(),
+  brand: z.string().max(80).optional(),
+  price: z
+    .object({
+      amount: z.number().positive(),
+      currency: z.string().length(3),
+    })
+    .optional(),
 });
 export type ExtractResponse = z.infer<typeof ExtractResponseSchema>;
 

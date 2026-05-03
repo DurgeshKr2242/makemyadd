@@ -3,6 +3,15 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 // Mock server-only so it doesn't throw outside Next.js runtime.
 vi.mock("server-only", () => ({}));
 
+// DNS resolution must be mocked — the scrape's DNS guard will otherwise hit
+// the host network and return non-deterministic results in CI.
+vi.mock("node:dns/promises", () => ({
+  default: {
+    lookup: vi.fn().mockResolvedValue([{ address: "104.21.50.1", family: 4 }]),
+  },
+  lookup: vi.fn().mockResolvedValue([{ address: "104.21.50.1", family: 4 }]),
+}));
+
 vi.mock("@/lib/supabase/server", () => ({
   createClient: vi.fn().mockResolvedValue({
     auth: {
