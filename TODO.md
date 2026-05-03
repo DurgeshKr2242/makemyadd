@@ -90,52 +90,36 @@ The whole bootstrap aims at one outcome: **every tool in the stack is reachable 
 
 `.mcp.json` is committed with all 11 servers wired. `pnpm mcp:doctor` smoke-tests them.
 
-- [ ] **Next.js MCP server** — wire `experimental.mcpServer: true` in `next.config.ts` once the dev server is being used. Currently DOWN in `mcp:doctor` (expected — dev server isn't running).
-- [x] **Supabase MCP** — `supabase-local` (read-write) + `supabase-prod` (read-only) configured. SKIP'd in doctor until tokens set.
-- [x] **Cloudflare MCP suite** — `cloudflare-r2` (currently fetch-fails — endpoint URL likely needs updating) and `cloudflare-observability` (UP).
+- [x] **Next.js MCP server** — Next.js 16 ships `/_next/mcp` built into the dev server (no `experimental` flag needed). Wired via `next-devtools-mcp` package in `.mcp.json`; auto-discovers when `pnpm dev` is running. Doctor: UP.
+- [x] **Supabase MCP** — switched to the **hosted OAuth** server (`https://mcp.supabase.com/mcp?project_ref=…`) — no shell tokens, project-scoped. Replaces the earlier `supabase-local` / `supabase-prod` npx pair. Doctor: UP.
+- [x] **Cloudflare MCP suite** — `cloudflare-observability` UP. `cloudflare-r2` fetch-fails (URL likely stale; revisit once R2 is wired in §16).
 - [x] **Vercel MCP** — UP (401 = endpoint live, awaits OAuth).
 - [x] **Sentry MCP** — wired (returns 410, may need URL update once Sentry wizard is run).
-- [x] **PostHog MCP** — wired (`@posthog/mcp`), SKIP until token set.
+- [x] **PostHog MCP** — wired (`@posthog/mcp`), SKIP until `POSTHOG_AUTH_HEADER` is set.
 - [x] **GitHub MCP** — UP.
 - [x] **shadcn/ui MCP** — UP (stdio handshake).
 - [x] **Playwright MCP** — UP (stdio handshake).
 - [ ] **Razorpay** in-house MCP wrapper at `tools/mcp/razorpay/`. Low priority.
 - [ ] HuggingFace / Groq MCPs — none yet, defer.
 
-### 0.5.3 `.mcp.json` skeleton
+### 0.5.3 `.mcp.json` (current — see the file at the repo root for full comments)
 
-```json
-{
-  "mcpServers": {
-    "nextjs": { "url": "http://localhost:3000/_next/mcp" },
-    "supabase-local":  { "command": "npx", "args": ["-y", "@supabase/mcp-server-supabase@latest", "--project-ref", "${SUPABASE_PROJECT_REF_LOCAL}"] },
-    "supabase-prod":   { "command": "npx", "args": ["-y", "@supabase/mcp-server-supabase@latest", "--project-ref", "${SUPABASE_PROJECT_REF_PROD}", "--read-only"] },
-    "cloudflare-r2":   { "url": "https://r2.mcp.cloudflare.com/sse" },
-    "cloudflare-obs":  { "url": "https://observability.mcp.cloudflare.com/sse" },
-    "vercel":          { "url": "https://mcp.vercel.com/sse" },
-    "sentry":          { "url": "https://mcp.sentry.dev/sse" },
-    "posthog":         { "command": "npx", "args": ["-y", "@posthog/mcp-server@latest"] },
-    "github":          { "url": "https://api.githubcopilot.com/mcp/" },
-    "shadcn":          { "command": "pnpm", "args": ["dlx", "shadcn@canary", "mcp"] },
-    "playwright":      { "command": "npx", "args": ["-y", "@playwright/mcp@latest"] }
-  }
-}
-```
+10 servers wired. Hosted MCPs (Supabase, Cloudflare ×2, Vercel, Sentry, GitHub) use OAuth on first call. Locally-spawned (next-devtools, posthog, shadcn, playwright) run via `npx`/`pnpm dlx`. Source of truth is `.mcp.json` itself; do not duplicate the JSON here — drift is the failure mode.
 
 - [x] Added `pnpm mcp:doctor` script via `tools/mcp-doctor.mjs`. (CI nightly run pending — depends on a separate cron workflow.)
-- [ ] Document MCP auth token sources in README's "AI agent setup" section. Tokens go in `~/.config/claude/.env` or per-MCP keychains, **never** committed.
+- [x] Documented MCP auth in README "AI agent setup" — most are OAuth (browser flow on first call). Only PostHog (`POSTHOG_AUTH_HEADER`) and Sentry source-map upload (`SENTRY_AUTH_TOKEN`) need shell env. Tokens go in your shell rc or `~/.config/claude/.env`, **never** committed.
 
 ### 0.5.4 Documentation grounding
 
 - [x] Generated `client/public/llms.txt` + `client/public/llms-full.txt` (llmstxt.org spec — README + CONTRIBUTING dump for external AI agents). Landed `7bd3d43`.
-- [ ] Add a `pnpm docs:next` helper that opens `node_modules/next/dist/docs/index.mdx` — humans get the same source the agents do.
-- [ ] Bookmark Next.js MCP support page (`https://nextjs.org/docs/app/guides/mcp-server`) in CONTRIBUTING.md.
+- [x] `pnpm docs:next` script wired (`open node_modules/next/dist/docs/index.mdx`).
+- [x] Bookmarked Next.js MCP support page in CONTRIBUTING.md.
 
 ### 0.5.5 Anti-patterns to avoid
 
 - ❌ Don't pin Next.js to a stable old version once we're on canary — we lose bundled docs and the MCP server.
 - ❌ Don't paste env vars into MCP arguments inline — use `${VAR}` substitution so they're per-shell, not in `.mcp.json`.
-- ❌ Don't enable read-write Supabase MCP against the prod project ref. Two separate entries (`supabase-local`, `supabase-prod` with `--read-only`).
+- ❌ Don't enable read-write Supabase MCP against a production project. When prod lands, add a second `supabase-prod` entry with the read-only URL flag (`?project_ref=…&read_only=true`).
 - ❌ Don't skip the `mcp:doctor` script — silent MCP failures send agents back to hallucinations.
 
 ---
@@ -256,46 +240,50 @@ Mirror the spec exactly so file paths stay grep-able against the doc.
 All DDL via `client/supabase/migrations/*.sql`. **Never** edit through the dashboard.
 
 ### 2.1 `profiles`
-- [ ] FK to `auth.users(id)` with `on delete cascade`.
-- [ ] Columns: `id`, `full_name`, `avatar_url`, `plan` (`free|starter|pro|agency`, default `free`), `generation_count`, `monthly_reset_at`, `razorpay_customer_id` (unique, nullable), `created_at`, `updated_at`.
-- [ ] Trigger `handle_new_user()` (`security definer`, `set search_path = public`) to insert profile from `auth.users.raw_user_meta_data`.
-- [ ] Trigger to bump `updated_at` on update.
-- [ ] RLS: `Users read own profile` (select where `auth.uid() = id`); `Users update own profile` (update where `auth.uid() = id`). **No insert policy** — handled by trigger only.
+- [x] FK to `auth.users(id)` with `on delete cascade`.
+- [x] Columns: `id`, `full_name`, `avatar_url`, `plan` (`free|starter|pro|agency`, default `free`), `generation_count`, `monthly_reset_at`, `razorpay_customer_id` (unique, nullable), `created_at`, `updated_at`. Plus `check (generation_count >= 0)` for safety.
+- [x] Trigger `handle_new_user()` — `security definer` + `set search_path = ''` (empty path is stronger than `public`; forces fully-qualified references). `revoke all` from public/anon/authenticated as defense in depth.
+- [x] Trigger `set_updated_at()` (also `set search_path = ''`) — bumps `updated_at` on every update. Generic, reused by `profiles`, `subscriptions`, `brand_kits`.
+- [x] RLS with `(select auth.uid())` perf wrapper + `to authenticated` role qualifier — Supabase's current best-practice pattern (init-plan caching, skips eval for non-matching roles).
 
 ### 2.2 `subscriptions`
-- [ ] Columns: `id`, `user_id`, `razorpay_subscription_id` (unique), `razorpay_plan_id`, `plan`, `status` (`created|active|halted|cancelled`), `current_period_start`, `current_period_end`, `created_at`, `updated_at`.
-- [ ] Indexes: `(user_id)`, `(razorpay_subscription_id)`.
-- [ ] RLS: `Users read own subscription` only. **No client writes** — webhook uses service role.
-- [ ] Decision: enforce **one active subscription per user** with a partial unique index on `user_id where status = 'active'`. (Spec implies it; doesn't enforce.)
+- [x] Columns per spec.
+- [x] Indexes: `(user_id)`, `(razorpay_subscription_id)`, plus partial `(status) where status in ('created','active','halted')` for webhook reconciliation queries.
+- [x] RLS: `Users read own subscription` (with `(select auth.uid())` wrapper + `to authenticated`).
+- [x] Partial unique index `subscriptions_one_active_per_user` enforces one active sub per user.
 
 ### 2.3 `templates`
-- [ ] Columns: `id` (text, e.g. `festival_bright_01`), `name`, `category` (`sale|showcase|trust|urgency`), `formats` (text[]), `preview_url`, `config` (jsonb — Fabric template), `is_active`, `created_at`.
-- [ ] RLS: `Public read templates` (select where `true`).
-- [ ] Phase 2 scaffold columns: `is_video boolean default false`, `creatomate_template_id text`. Add now in migration 007.
-- [ ] Seed via `client/supabase/seed.sql` AND `lib/templates/configs/*.ts`. Seed at least one template per category × per supported format.
+- [x] Columns per spec, plus `check (array_length(formats, 1) >= 1)`.
+- [x] RLS: `Public read active templates` — `to anon, authenticated`, scoped to `is_active = true` (so soft-deleted templates don't leak).
+- [x] Phase 2 scaffold columns added in migration 007 (`is_video`, `creatomate_template_id`).
+- [x] Partial index `(category, name) where is_active = true` for the dashboard browse query.
+- [ ] Seed via `client/supabase/seed.sql` AND `lib/templates/configs/*.ts`. Seed at least one template per category × per supported format. (smoke seed exists; full registry is §11.)
 
 ### 2.4 `generations`
-- [ ] Columns: `id`, `user_id`, `input_type` (`url|photo`), `input_url`, `product_image_url`, `bg_removed_url`, `product_name`, `product_desc`, `language` (`en|hi|ta|te`), `template_id`, `format` (`1x1|9x16|4x5`), `copy_variants` (jsonb), `selected_variant int default 0`, `status` (`pending|processing|complete|failed`), `error_message`, `created_at`.
-- [ ] Indexes: `(user_id, created_at desc)`, `(status)`.
-- [ ] RLS: `Users manage own generations` (`for all using auth.uid() = user_id`).
-- [ ] Decision: **storage of final exported PNG** is client-only (download direct). If we later need a "share link", add `final_url` column and persist to R2 bucket `adcreator-public`.
+- [x] Columns per spec, plus `meta jsonb` for free-form metadata (cache hits, latency, fallback flags) and `check (selected_variant >= 0)`.
+- [x] `template_id` FK uses `on delete set null` (deleting a template doesn't kill historical generations).
+- [x] Indexes: `(user_id, created_at desc)`, plus partial `(status, created_at) where status in ('pending','processing')` for the stuck-job sweep.
+- [x] RLS: `Users manage own generations` (`for all`) with `(select auth.uid())` wrapper + `to authenticated`.
+- [x] Realtime publication added in migration 008 — dashboard streams status transitions without polling.
+- [ ] Decision logged: final exported PNG is client-only download. `final_url` column reserved for a future "share link" feature.
 
 ### 2.5 `copy_cache`
-- [ ] Columns: `id`, `category`, `language`, `tone`, `variants` (jsonb), `use_count`, `created_at`.
-- [ ] Index: `(category, language, tone)`.
-- [ ] RLS: enabled with **no client policies** — service role only.
-- [ ] SQL function: `increment_copy_cache_use(cache_id uuid)`.
-- [ ] TODO: define category taxonomy (`fashion | food | electronics | beauty | home`) and tone taxonomy (`festive | urgent | trust | showcase`). Document in `lib/types.ts`.
+- [x] Columns per spec, taxonomies enforced via check constraints (`category in ('fashion'..'home')`, `tone in ('festive'..'showcase')`).
+- [x] Index: `(category, language, tone)`.
+- [x] RLS enabled with **no client policies** — service role only. `revoke execute` on `increment_copy_cache_use` from anon/authenticated.
+- [x] SQL function `increment_copy_cache_use(uuid)` with `set search_path = ''`.
+- [ ] Mirror the taxonomies in `lib/types.ts` so app code stays in sync.
 
-### 2.6 `image_cache` (own design — spec mentions but doesn't DDL)
-- [ ] Columns: `phash text primary key`, `bg_removed_url text not null`, `created_at timestamptz default now()`, `hit_count int default 0`, `original_size_bytes int`.
-- [ ] RLS: enabled, **no client policies** — service role only.
-- [ ] Eviction: nightly job (cron via Supabase pg_cron or Vercel Cron) deleting rows with `hit_count = 0` older than 30 days. Avoids unbounded growth.
+### 2.6 `image_cache`
+- [x] Columns per spec; `original_size_bytes` has a `check (... > 0)` guard.
+- [x] RLS enabled, no client policies.
+- [x] `evict_stale_image_cache(days_old int default 30)` with `set search_path = ''` and `revoke execute` from public/anon/authenticated. Wired for cron in §24.
+- [x] `increment_image_cache_hit(text)` similarly locked down.
 
 ### 2.7 Phase 2 scaffolds (create now, leave unused)
-- [ ] `whatsapp_sessions` (phone PK, user FK, step, language, format, input_image_url, last_activity).
-- [ ] `brand_kits` (id, user_id, name, logo_url, primary_color, secondary_color, font_family). RLS: own only.
-- [ ] Migration 007 adds `templates.is_video`, `templates.creatomate_template_id`.
+- [x] `whatsapp_sessions` with `step` check constraint + activity index for stale-session sweep.
+- [x] `brand_kits` with hex-color check constraints, `updated_at` trigger, RLS scoped to owner.
+- [x] Migration 007 adds `templates.is_video`, `templates.creatomate_template_id`.
 
 ### 2.8 RLS verification
 - [ ] Write a `pnpm test:rls` script that connects with the anon key as a fake user and asserts:
@@ -305,43 +293,48 @@ All DDL via `client/supabase/migrations/*.sql`. **Never** edit through the dashb
   - cannot escalate `plan` column on own profile (validate via update test)
 
 ### 2.9 Backups & migrations
-- [ ] Use Supabase CLI (`supabase db push`) for every migration — **never** dashboard SQL editor.
-- [ ] Keep linked project (`supabase link`) and check the migration into VCS before running on prod.
+- [x] Supabase CLI installed as a devDep (`pnpm-allowed-built-deps` configured for postinstall binary). `pnpm db:push`, `pnpm db:reset`, `pnpm db:diff`, `pnpm db:types` scripts wired.
+- [x] Project linked (`supabase link --project-ref ekmdcwmspfvxvyibbzmw`); migrations committed to VCS before push.
 - [ ] Daily Supabase point-in-time backups: enabled by default on free tier (verify).
+
+### 2.10 Apply schema (DONE)
+- [x] All 8 migrations applied to project `ekmdcwmspfvxvyibbzmw` (Supabase Postgres 17). `pnpm supabase migration list --linked` confirms local↔remote parity.
+- [x] `database.types.ts` regenerated from live schema (was 23-line placeholder, now 496 lines of real types).
+- [x] `pnpm supabase db advisors --linked` returns **No issues found** (security + performance audit).
+- [x] `supabase/config.toml` aligned with remote (`major_version = 17`, Google OAuth disabled until §3 wires it).
+
+Going forward, every schema change is: `pnpm supabase migration new <name>` → edit SQL → `pnpm db:push` → `pnpm db:types`.
 
 ---
 
 ## 3. Supabase Configuration
 
 ### 3.1 Auth
-- [ ] Enable **Google OAuth** with credentials from Google Cloud Console (OAuth 2.0 client ID).
-  - Authorized redirect URI: `https://<project>.supabase.co/auth/v1/callback`.
-  - Configure consent screen (app name, logo, support email, scopes: email + profile).
-- [ ] **Email/password** stays on by default. **Disable email confirmation** for MVP friction (Auth → Email → off).
-  - Decision tracked: re-enable email confirmation after we ship abuse controls (Phase 2).
-- [ ] **Site URL:** `https://adcreator.in`. **Additional redirect URLs:** `http://localhost:3000`, Vercel preview wildcard `https://*.vercel.app` for PR previews.
-- [ ] **Password rules:** min length 8, require number + symbol (Supabase Auth → Password Policy).
-- [ ] **Rate limits:** Supabase Auth defaults to 30 emails/hour on free tier — fine for MVP.
-- [ ] 🔒 **Forgot password flow:** `supabase.auth.resetPasswordForEmail(email, { redirectTo: '/auth/reset' })` + `/auth/reset` page that calls `updateUser({ password })`.
-- [ ] **Magic link** off for MVP (avoids confusion with two auth modalities).
+- [ ] **Google OAuth** — _deferred per user request._ UI button hidden; `auth/callback` route stays for Phase 2 reactivation. Re-enabling is one prop change in `login-card.tsx` + `signup-card.tsx` plus flipping `[auth.external.google]` in `supabase/config.toml`.
+- [x] **Email/password** wired end-to-end (Tasks 1–10 of `docs/superpowers/plans/2026-05-03-auth-flow.md`). Email confirmation OFF in `supabase/config.toml` for MVP — re-enable after abuse controls ship.
+- [ ] **Site URL** + redirect URLs in Supabase Dashboard → Auth → URL Configuration. Set `https://adcreator.in` once the domain lands; `http://localhost:3000` and `https://*.vercel.app` already covered.
+- [x] **Password rules** enforced both client-side (Zod) and at Supabase project level: min 8, requires number + symbol. Mirrored in `lib/schemas/auth.ts`.
+- [x] **Rate limits:** Supabase Auth defaults to 30 emails/hour on free tier — accepted for MVP.
+- [x] 🔒 **Forgot password flow** — `forgotPasswordAction` calls `resetPasswordForEmail(email, { redirectTo: <APP_URL>/auth/reset })` and ALWAYS returns ok (no email enumeration). `/auth/reset` calls `resetPasswordAction` → `updateUser({ password })`.
+- [x] **Magic link** OFF for MVP — decision logged.
 
 ### 3.2 Clients
-- [ ] `lib/supabase/client.ts` — `createBrowserClient` for client components.
-- [ ] `lib/supabase/server.ts` — `createServerClient` reading from `cookies()` (App Router).
-- [ ] `lib/supabase/admin.ts` — `createClient` with `SUPABASE_SERVICE_ROLE_KEY`. **NEVER imported in any file under `app/(dashboard)`, `components/`, or any Client Component.** Add an ESLint rule (`no-restricted-imports`) to enforce this.
-- [ ] All three exposed as functions, not module singletons (cookie store must be re-read per request).
+- [x] `lib/supabase/client.ts` — `createBrowserClient` (function, not module singleton). Already in place.
+- [x] `lib/supabase/server.ts` — `createServerClient` reading from `cookies()` (App Router).
+- [x] `lib/supabase/admin.ts` — service-role client. Biome `noRestrictedImports` rule (in `biome.json`) blocks importing it from any client component or `app/(dashboard)/**`.
+- [x] All three exposed as functions — cookie store + auth context are re-read per request.
 
 ### 3.3 Middleware (`middleware.ts`)
-- [ ] Refresh session cookie on every request via `getSession()`.
-- [ ] `matcher: ['/dashboard/:path*', '/api/generate/:path*', '/api/payments/:path*', '/api/upload/:path*', '/api/generations/:path*']`.
-- [ ] Unauthenticated → redirect to `/login?next=<orig>`.
-- [ ] Cookie chunking handled by `@supabase/ssr` (works automatically; spec relies on it).
+- [x] Refreshes session cookie on every request via `getUser()` (safer than `getSession()` — server-validated).
+- [x] Matcher excludes `_next/*` static + asset extensions; protects `/dashboard`, `/history`, `/billing`, `/settings`, plus the four `/api/*` prefixes.
+- [x] Unauthenticated → redirect to `/login?next=<orig>`. `safeRedirect()` guards consumers against open-redirect on the way back.
+- [x] Cookie chunking handled by `@supabase/ssr`.
 
 ### 3.4 Realtime (optional)
-- [ ] Decision: not needed for MVP — generation completes inside the request lifecycle. Skip Realtime channels until WhatsApp bot or background queue arrives.
+- [x] Decision logged: not needed for MVP — generation completes inside the request lifecycle. (Migration 008 already adds `generations` to the realtime publication so flipping this on later is a single client subscription away.)
 
 ### 3.5 Storage buckets
-- [ ] We **do not** use Supabase Storage. All file storage goes to R2. Verify no code imports `supabase.storage`.
+- [x] Verified — `grep -rn "supabase.storage" app lib` returns nothing. All file storage goes to R2 (§4).
 
 ---
 
